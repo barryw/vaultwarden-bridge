@@ -22,20 +22,19 @@ services:
 
 steps:
   - name: lint
-    image: rust:1.94-bookworm
+    image: rust:1.94.0-bookworm
     commands:
-      - rustup component add clippy rustfmt
       - cargo fmt -- --check
       - cargo clippy -- -D warnings
 
   - name: unit-test
-    image: rust:1.94-bookworm
+    image: rust:1.94.0-bookworm
     commands:
       - cargo test --lib
     depends_on: [lint]
 
   - name: build
-    image: rust:1.94-bookworm
+    image: rust:1.94.0-bookworm
     commands:
       - cargo build --release
     depends_on: [unit-test]
@@ -75,7 +74,7 @@ steps:
     depends_on: [build]
 
   - name: integration-test
-    image: rust:1.94-bookworm
+    image: rust:1.94.0-bookworm
     environment:
       DATABASE_URL: postgres://bridge:bridge@postgres:5432/vaultwarden_bridge
       BW_SERVER_URL: http://vaultwarden
