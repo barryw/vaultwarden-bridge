@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: internal-ca
+  namespace: vaultwarden-bridge
+data:
+  ca.crt: |
+    -----BEGIN CERTIFICATE-----
+    MIIBezCCASCgAwIBAgIQCd9+TQRfNEUVe29z46KjijAKBggqhkjOPQQDAjAdMRsw
+    GQYDVQQDExJXYWxrZXIgSW50ZXJuYWwgQ0EwHhcNMjYwMTE1MDEzNTE0WhcNMzYw
+    MTEzMDEzNTE0WjAdMRswGQYDVQQDExJXYWxrZXIgSW50ZXJuYWwgQ0EwWTATBgcq
+    hkjOPQIBBggqhkjOPQMBBwNCAARNXaP7YCKApXgAu2TOFcNNRuuAXeFa32u4hqWq
+    jth82GuxYL50B8OmjSnAVKIVOquvFDvJkPg6F4vCiLiuC3tFo0IwQDAOBgNVHQ8B
+    Af8EBAMCAqQwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUY/L0w3blakCzsp8K
+    P8isoUi72kkwCgYIKoZIzj0EAwIDSQAwRgIhAIlFfPxOJNKGcTVLpcfpmtORFl0O
+    /zfWx2dzXax63osKAiEAyMKMVv4Ijkwq8w6ADdmZ4a7a7ciS5TgLxOVZbiIKupc=
+    -----END CERTIFICATE-----

@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vaultwarden-bridge
+  namespace: vaultwarden-bridge
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: vault-bridge.lan
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: vaultwarden-bridge
+                port:
+                  number: 80

@@ -1,0 +1,127 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vaultwarden-bridge
+  namespace: vaultwarden-bridge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vaultwarden-bridge
+  template:
+    metadata:
+      labels:
+        app: vaultwarden-bridge
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      hostAliases:
+        - ip: "10.43.241.13"
+          hostnames:
+            - "vault.lan"
+      initContainers:
+        - name: init-bw-appdata
+          image: busybox:1.36
+          command:
+            - /bin/sh
+            - -c
+            - cp /bw-appdata-seed/data.json /bw-appdata/data.json
+          volumeMounts:
+            - name: bw-appdata-seed
+              mountPath: /bw-appdata-seed
+              readOnly: true
+            - name: bw-appdata
+              mountPath: /bw-appdata
+      containers:
+        - name: vaultwarden-bridge
+          image: ghcr.io/barryw/vaultwarden-bridge:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DATABASE_URL
+              value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@walker-cnpg-rw.default.svc.cluster.local/vaultwarden_bridge"
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: walker-cnpg-vaultwarden-bridge
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: walker-cnpg-vaultwarden-bridge
+                  key: password
+            - name: BW_SERVER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: vaultwarden-credentials
+                  key: BW_SERVER
+            - name: BW_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: vaultwarden-credentials
+                  key: BW_EMAIL
+            - name: BW_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vaultwarden-credentials
+                  key: BW_PASSWORD
+            - name: BW_SERVE_PORT
+              value: "8087"
+            - name: BRIDGE_ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: bridge-admin
+                  key: username
+            - name: BRIDGE_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bridge-admin
+                  key: password
+            - name: BRIDGE_UI_ALLOW_CIDRS
+              value: "10.0.0.0/8,192.168.0.0/16"
+            - name: BRIDGE_API_ALLOW_CIDRS
+              value: "10.0.0.0/8,192.168.0.0/16"
+            - name: BRIDGE_LISTEN_PORT
+              value: "8080"
+            - name: RUST_LOG
+              value: "info"
+            - name: NODE_EXTRA_CA_CERTS
+              value: "/etc/ssl/certs/internal-ca.crt"
+            - name: BITWARDENCLI_APPDATA_DIR
+              value: "/bw-appdata"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+          volumeMounts:
+            - name: bw-appdata
+              mountPath: /bw-appdata
+            - name: internal-ca
+              mountPath: /etc/ssl/certs/internal-ca.crt
+              subPath: ca.crt
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      volumes:
+        - name: bw-appdata-seed
+          configMap:
+            name: bw-appdata
+        - name: bw-appdata
+          emptyDir: {}
+        - name: internal-ca
+          configMap:
+            name: internal-ca

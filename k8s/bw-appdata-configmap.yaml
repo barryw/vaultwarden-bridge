@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bw-appdata
+  namespace: vaultwarden-bridge
+data:
+  data.json: |
+    {
+      "global_applicationId_appId": "b2e4f8a1-3c7d-4e9f-a1b2-8d6e5f4c3a21"
+    }
