@@ -32,6 +32,7 @@ pub struct BwLogin {
 
 #[derive(Debug, Deserialize)]
 struct BwListResponse {
+    #[allow(dead_code)]
     success: bool,
     data: Option<BwListData>,
 }
@@ -43,6 +44,7 @@ struct BwListData {
 
 #[derive(Debug, Deserialize)]
 struct BwItemResponse {
+    #[allow(dead_code)]
     success: bool,
     data: Option<BwItem>,
 }

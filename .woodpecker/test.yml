@@ -1,0 +1,104 @@
+when:
+  - event: [push, pull_request]
+
+labels:
+  platform: linux/amd64
+
+services:
+  - name: postgres
+    image: postgres:17
+    environment:
+      POSTGRES_USER: bridge
+      POSTGRES_PASSWORD: bridge
+      POSTGRES_DB: vaultwarden_bridge
+
+  - name: vaultwarden
+    image: vaultwarden/server:latest
+    environment:
+      DOMAIN: http://vaultwarden
+      SIGNUPS_ALLOWED: "true"
+      LOG_LEVEL: info
+      ROCKET_PORT: "80"
+
+steps:
+  - name: lint
+    image: rust:1.85-bookworm
+    commands:
+      - rustup component add clippy rustfmt
+      - cargo fmt -- --check
+      - cargo clippy -- -D warnings
+
+  - name: unit-test
+    image: rust:1.85-bookworm
+    commands:
+      - cargo test --lib
+    depends_on: [lint]
+
+  - name: build
+    image: rust:1.85-bookworm
+    commands:
+      - cargo build --release
+    depends_on: [unit-test]
+
+  - name: seed-vaultwarden
+    image: debian:bookworm-slim
+    commands:
+      - apt-get update && apt-get install -y curl unzip jq
+      - curl -fsSL "https://vault.bitwarden.com/download/?app=cli&platform=linux" -o /tmp/bw.zip
+      - unzip /tmp/bw.zip -d /usr/local/bin && chmod +x /usr/local/bin/bw
+      - |
+        echo "==> Waiting for Vaultwarden..."
+        for i in $(seq 1 30); do
+          curl -sf http://vaultwarden/alive > /dev/null 2>&1 && break
+          [ "$i" -eq 30 ] && echo "Vaultwarden not ready" && exit 1
+          sleep 1
+        done
+      - |
+        echo "==> Waiting for Postgres..."
+        for i in $(seq 1 30); do
+          (echo > /dev/tcp/postgres/5432) 2>/dev/null && break
+          [ "$i" -eq 30 ] && echo "Postgres not ready" && exit 1
+          sleep 1
+        done
+      - bw config server http://vaultwarden
+      - export BW_NOINTERACTION=true
+      - |
+        bw login bridge-test@example.com TestPassword123! --raw || true
+        SESSION=$(bw unlock TestPassword123! --raw)
+        export BW_SESSION="$SESSION"
+        bw create item "$(echo '{"type":1,"name":"prod/db/password","login":{"username":"db_admin","password":"super-secret-db-password"}}' | bw encode)" > /dev/null
+        bw create item "$(echo '{"type":1,"name":"prod/api/token","login":{"username":"api-service","password":"api-token-12345"}}' | bw encode)" > /dev/null
+        bw create item "$(echo '{"type":1,"name":"staging/db/password","login":{"username":"db_staging","password":"staging-db-password"}}' | bw encode)" > /dev/null
+        bw create item "$(echo '{"type":1,"name":"denied-secret","login":{"username":"nope","password":"you-shall-not-pass"}}' | bw encode)" > /dev/null
+        bw sync
+        echo "==> Seeded 4 test items"
+    depends_on: [build]
+
+  - name: integration-test
+    image: rust:1.85-bookworm
+    environment:
+      DATABASE_URL: postgres://bridge:bridge@postgres:5432/vaultwarden_bridge
+      BW_SERVER_URL: http://vaultwarden
+      BW_EMAIL: bridge-test@example.com
+      BW_PASSWORD: TestPassword123!
+      BW_SERVE_PORT: "8087"
+      BRIDGE_ADMIN_USERNAME: admin
+      BRIDGE_ADMIN_PASSWORD: testadmin123
+      BRIDGE_UI_ALLOW_CIDRS: 0.0.0.0/0
+      BRIDGE_API_ALLOW_CIDRS: 0.0.0.0/0
+      RUST_LOG: info
+      BRIDGE_LISTEN_PORT: "8080"
+    commands:
+      - apt-get update && apt-get install -y curl unzip
+      - curl -fsSL "https://vault.bitwarden.com/download/?app=cli&platform=linux" -o /tmp/bw.zip
+      - unzip /tmp/bw.zip -d /usr/local/bin && chmod +x /usr/local/bin/bw
+      - cargo test --test integration
+    depends_on: [seed-vaultwarden]
+
+  - name: build-terraform-provider
+    image: golang:1.23-bookworm
+    commands:
+      - cd terraform-provider-vaultwarden
+      - go build ./...
+      - go vet ./...
+    depends_on: [lint]
