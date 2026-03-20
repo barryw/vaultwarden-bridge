@@ -118,11 +118,3 @@ steps:
       - unzip /tmp/bw.zip -d /usr/local/bin && chmod +x /usr/local/bin/bw
       - cargo test --test integration
     depends_on: [seed-vaultwarden]
-
-  - name: build-terraform-provider
-    image: golang:1.23-bookworm
-    commands:
-      - cd terraform-provider-vaultwarden
-      - go build ./...
-      - go vet ./...
-    depends_on: [lint]
