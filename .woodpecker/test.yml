@@ -85,10 +85,26 @@ steps:
       BRIDGE_UI_ALLOW_CIDRS: 0.0.0.0/0
       BRIDGE_API_ALLOW_CIDRS: 0.0.0.0/0
       RUST_LOG: info
-      BRIDGE_LISTEN_PORT: "8080"
+      BRIDGE_LISTEN_PORT: "9090"
+      TEST_BRIDGE_URL: http://127.0.0.1:9090
+      BW_NOINTERACTION: "true"
     commands:
       - apt-get update && apt-get install -y curl unzip
       - curl -fsSL "https://github.com/bitwarden/clients/releases/download/cli-v2024.4.0/bw-linux-2024.4.0.zip" -o /tmp/bw.zip
       - unzip /tmp/bw.zip -d /usr/local/bin && chmod +x /usr/local/bin/bw
-      - cargo test --test integration -- --test-threads=1
+      - |
+        echo "==> Starting bridge in background..."
+        ./target/release/vaultwarden-bridge &
+        BRIDGE_PID=$!
+        echo "==> Waiting for bridge to be ready..."
+        for i in $(seq 1 60); do
+          curl -sf http://127.0.0.1:9090/api/v1/health > /dev/null 2>&1 && break
+          [ "$i" -eq 60 ] && echo "Bridge not ready" && kill $BRIDGE_PID && exit 1
+          sleep 1
+        done
+        echo "==> Bridge is ready"
+        cargo test --test integration -- --test-threads=1
+        EXIT_CODE=$?
+        kill $BRIDGE_PID 2>/dev/null || true
+        exit $EXIT_CODE
     depends_on: [seed-vaultwarden]
