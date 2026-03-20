@@ -78,7 +78,7 @@ def register_account():
     }).encode()
 
     req = urllib.request.Request(
-        f"{VAULTWARDEN_URL}/api/accounts/register",
+        f"{VAULTWARDEN_URL}/identity/accounts/register",
         data=payload,
         headers={"Content-Type": "application/json"},
         method="POST",
