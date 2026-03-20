@@ -9,9 +9,9 @@ steps:
   - name: test
     image: rust:1.94.0-bookworm
     commands:
-      - cargo fmt -- --check
-      - cargo clippy -- -D warnings
-      - cargo test --lib
+      - cargo fmt --all -- --check
+      - cargo clippy --workspace -- -D warnings
+      - cargo test --workspace --lib
 
   - name: docker
     image: gcr.io/kaniko-project/executor:debug

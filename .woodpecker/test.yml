@@ -27,19 +27,19 @@ steps:
   - name: lint
     image: rust:1.94.0-bookworm
     commands:
-      - cargo fmt -- --check
-      - cargo clippy -- -D warnings
+      - cargo fmt --all -- --check
+      - cargo clippy --workspace -- -D warnings
 
   - name: unit-test
     image: rust:1.94.0-bookworm
     commands:
-      - cargo test --lib
+      - cargo test --workspace --lib
     depends_on: [lint]
 
   - name: build
     image: rust:1.94.0-bookworm
     commands:
-      - cargo build --release
+      - cargo build --workspace --release
     depends_on: [unit-test]
 
   - name: seed-vaultwarden
@@ -103,7 +103,7 @@ steps:
           sleep 1
         done
         echo "==> Bridge is ready"
-        cargo test --test integration -- --test-threads=1
+        cargo test -p vaultwarden-bridge --test integration -- --test-threads=1
         EXIT_CODE=$?
         kill $BRIDGE_PID 2>/dev/null || true
         exit $EXIT_CODE
