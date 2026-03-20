@@ -100,10 +100,17 @@ pub struct BwManager {
     email: String,
     password: String,
     port: u16,
+    external: bool,
 }
 
 impl BwManager {
-    pub fn new(server_url: String, email: String, password: String, port: u16) -> Self {
+    pub fn new(
+        server_url: String,
+        email: String,
+        password: String,
+        port: u16,
+        external: bool,
+    ) -> Self {
         Self {
             client: BwClient::new(port),
             child: Arc::new(RwLock::new(None)),
@@ -111,17 +118,37 @@ impl BwManager {
             email,
             password,
             port,
+            external,
         }
     }
 
     pub async fn start(&self) -> anyhow::Result<()> {
-        // Configure server URL
+        if self.external {
+            return self.wait_for_external().await;
+        }
+        self.start_managed().await
+    }
+
+    /// Wait for an externally managed bw serve (e.g. k8s sidecar).
+    async fn wait_for_external(&self) -> anyhow::Result<()> {
+        tracing::info!(port = self.port, "waiting for external bw serve");
+        for _ in 0..60 {
+            if self.client.health().await {
+                tracing::info!("external bw serve is healthy");
+                return Ok(());
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        }
+        anyhow::bail!("external bw serve not healthy within 60s")
+    }
+
+    /// Start and manage bw serve as a subprocess.
+    async fn start_managed(&self) -> anyhow::Result<()> {
         Command::new("bw")
             .args(["config", "server", &self.server_url])
             .output()
             .await?;
 
-        // Login
         let login_output = Command::new("bw")
             .args(["login", &self.email, &self.password, "--raw"])
             .env("BW_NOINTERACTION", "true")
@@ -132,7 +159,6 @@ impl BwManager {
             tracing::info!("login failed, attempting unlock");
         }
 
-        // Unlock and get session
         let unlock_output = Command::new("bw")
             .args(["unlock", &self.password, "--raw"])
             .env("BW_NOINTERACTION", "true")
@@ -144,7 +170,6 @@ impl BwManager {
             anyhow::bail!("failed to unlock vault — empty session key");
         }
 
-        // Start bw serve
         let child = Command::new("bw")
             .args([
                 "serve",
@@ -159,7 +184,6 @@ impl BwManager {
 
         *self.child.write().await = Some(child);
 
-        // Wait for bw serve to become healthy
         for _ in 0..30 {
             if self.client.health().await {
                 tracing::info!("bw serve is healthy");

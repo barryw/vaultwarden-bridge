@@ -12,7 +12,6 @@ steps:
       - cargo fmt -- --check
       - cargo clippy -- -D warnings
       - cargo test --lib
-      - cargo build --release
 
   - name: docker
     image: gcr.io/kaniko-project/executor:debug

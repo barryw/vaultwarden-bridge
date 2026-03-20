@@ -13,6 +13,7 @@ pub struct Config {
     pub ui_allow_cidrs: Vec<IpNet>,
     pub api_allow_cidrs: Vec<IpNet>,
     pub listen_port: u16,
+    pub bw_serve_external: bool,
 }
 
 pub fn parse_cidrs(s: &str) -> Result<Vec<IpNet>, ipnet::AddrParseError> {
@@ -55,6 +56,9 @@ impl Config {
             listen_port: env::var("BRIDGE_LISTEN_PORT")
                 .unwrap_or_else(|_| "8080".to_string())
                 .parse()?,
+            bw_serve_external: env::var("BW_SERVE_EXTERNAL")
+                .unwrap_or_default()
+                .eq_ignore_ascii_case("true"),
         })
     }
 }
