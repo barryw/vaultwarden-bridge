@@ -77,16 +77,15 @@ steps:
       - |
         export BW_NOINTERACTION=true
         bw config server http://vaultwarden:80
-        echo "==> Registering test account..."
-        curl -sf -X POST "http://vaultwarden:80/api/accounts/register" \
-          -H "Content-Type: application/json" \
-          -d '{"name":"Bridge Test","email":"bridge-test@example.com","masterPasswordHash":"'$(echo -n 'bridge-test@example.comTestPassword123!' | openssl dgst -sha256 -binary | openssl dgst -sha256 -binary | base64)'","masterPasswordHint":"test","key":"dummy"}' || echo "Registration may have failed, trying login anyway..."
-        echo "==> Logging in..."
-        SESSION=$(bw login bridge-test@example.com TestPassword123! --raw 2>/dev/null) || true
-        if [ -z "$SESSION" ]; then
-          SESSION=$(bw unlock TestPassword123! --raw 2>/dev/null) || true
+        echo "==> Logging in (creates account on first login with Vaultwarden)..."
+        SESSION=$(bw login bridge-test@example.com TestPassword123! --raw 2>&1) || true
+        if [ -z "$SESSION" ] || echo "$SESSION" | grep -qi error; then
+          echo "Login output: $SESSION"
+          echo "==> Login failed, trying unlock..."
+          SESSION=$(bw unlock TestPassword123! --raw 2>&1) || true
         fi
-        if [ -z "$SESSION" ]; then
+        if [ -z "$SESSION" ] || echo "$SESSION" | grep -qi error; then
+          echo "Session output: $SESSION"
           echo "ERROR: Could not get session"
           exit 1
         fi
