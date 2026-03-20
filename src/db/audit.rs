@@ -11,6 +11,17 @@ pub enum AuditAction {
     IpDenied,
 }
 
+impl std::fmt::Display for AuditAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AuditAction::SecretRetrieved => write!(f, "secret_retrieved"),
+            AuditAction::SecretNotFound => write!(f, "secret_not_found"),
+            AuditAction::AccessDenied => write!(f, "access_denied"),
+            AuditAction::IpDenied => write!(f, "ip_denied"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct AuditEntry {
     pub id: Uuid,

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Vaultwarden Bridge{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+    <div class="card">
+        <h2>Machine Keys</h2>
+        <p style="font-size:2rem;font-weight:700;">{{ key_count }}</p>
+        <p>{{ enabled_count }} enabled</p>
+    </div>
+    <div class="card">
+        <h2>bw serve</h2>
+        {% if bw_healthy %}
+        <span class="badge badge-green">Healthy</span>
+        {% else %}
+        <span class="badge badge-red">Unhealthy</span>
+        {% endif %}
+    </div>
+    <div class="card">
+        <h2>Recent Activity</h2>
+        <p style="font-size:2rem;font-weight:700;">{{ recent_audit_count }}</p>
+        <p>events (last 24h)</p>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Recent Audit Log</h2>
+    <table>
+        <thead>
+            <tr><th>Time</th><th>Action</th><th>Target</th><th>IP</th></tr>
+        </thead>
+        <tbody>
+            {% for entry in recent_audits %}
+            <tr>
+                <td>{{ entry.created_at }}</td>
+                <td>{{ entry.action }}</td>
+                <td>{{ entry.target_requested }}</td>
+                <td>{{ entry.source_ip }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

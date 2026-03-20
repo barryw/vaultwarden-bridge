@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow = "1"
 axum = "0.8"
-askama = "0.13"
+askama = "0.14"
 askama_web = { version = "0.14", features = ["axum-0.8"] }
 tokio = { version = "1", features = ["full"] }
 tower = "0.5"
