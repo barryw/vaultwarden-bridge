@@ -1,0 +1,51 @@
+when:
+  - event: tag
+    branch: main
+
+labels:
+  platform: linux/amd64
+
+steps:
+  - name: build
+    image: rust:1.94.0-bookworm
+    commands:
+      - |
+        VERSION="${CI_COMMIT_TAG#v}"
+        echo "Building vwb $VERSION for linux-amd64..."
+
+        apt-get update && apt-get install -y gcc-aarch64-linux-gnu > /dev/null 2>&1
+        rustup target add x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu
+
+        # Linux amd64
+        cargo build --release -p vwb --target x86_64-unknown-linux-gnu
+        cp target/x86_64-unknown-linux-gnu/release/vwb vwb-linux-amd64
+
+        # Linux arm64
+        CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
+          cargo build --release -p vwb --target aarch64-unknown-linux-gnu
+        cp target/aarch64-unknown-linux-gnu/release/vwb vwb-linux-arm64
+
+        # Checksums
+        sha256sum vwb-linux-* > SHA256SUMS
+        cat SHA256SUMS
+
+  - name: release
+    image: alpine:latest
+    environment:
+      GITHUB_TOKEN:
+        from_secret: github_token
+    commands:
+      - |
+        apk add --no-cache github-cli
+
+        VERSION="${CI_COMMIT_TAG#v}"
+        echo "Creating release $CI_COMMIT_TAG..."
+
+        gh release create "$CI_COMMIT_TAG" \
+          --repo barryw/vaultwarden-bridge \
+          --title "vwb $VERSION" \
+          --generate-notes \
+          vwb-linux-amd64 \
+          vwb-linux-arm64 \
+          SHA256SUMS
+    depends_on: [build]
