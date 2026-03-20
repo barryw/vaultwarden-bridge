@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Policies — Vaultwarden Bridge{% endblock %}
+{% block content %}
+<h1>Access Policies for "{{ key_name }}"</h1>
+<p><a href="/ui/keys">&larr; Back to keys</a></p>
+
+<div class="card">
+    <h2>Add Policy</h2>
+    <form method="POST" action="/ui/keys/{{ key_id }}/policies" style="display:flex;gap:0.5rem;align-items:end;">
+        <div class="form-group">
+            <label>Type</label>
+            <select name="target_type">
+                <option value="item">Item (exact name)</option>
+                <option value="collection">Collection (ID)</option>
+                <option value="glob">Glob pattern</option>
+            </select>
+        </div>
+        <div class="form-group" style="flex:1;">
+            <label>Value</label>
+            <input type="text" name="target_value" required placeholder="e.g. prod/db/* or collection-uuid" style="width:100%;">
+        </div>
+        <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr><th>Type</th><th>Value</th><th>Created</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for p in policies %}
+            <tr>
+                <td><span class="badge badge-gray">{{ p.target_type }}</span></td>
+                <td class="mono">{{ p.target_value }}</td>
+                <td>{{ p.created_at }}</td>
+                <td>
+                    <a href="/ui/keys/{{ key_id }}/policies/{{ p.id }}/delete" class="btn btn-sm btn-danger"
+                       onclick="return confirm('Remove this policy?')">Remove</a>
+                </td>
+            </tr>
+            {% endfor %}
+            {% if policies.is_empty() %}
+            <tr><td colspan="4" style="text-align:center;color:#999;">No policies — this key has zero access</td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

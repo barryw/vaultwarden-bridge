@@ -10,6 +10,16 @@ pub enum TargetType {
     Glob,
 }
 
+impl std::fmt::Display for TargetType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TargetType::Item => write!(f, "item"),
+            TargetType::Collection => write!(f, "collection"),
+            TargetType::Glob => write!(f, "glob"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct AccessPolicy {
     pub id: Uuid,
