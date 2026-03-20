@@ -63,10 +63,11 @@ steps:
           fi
           sleep 1
         done
+      - apt-get install -y postgresql-client > /dev/null 2>&1
       - |
         echo "==> Waiting for Postgres..."
         for i in $(seq 1 30); do
-          if curl -sf http://postgres:5432 > /dev/null 2>&1 || nc -z postgres 5432 2>/dev/null; then
+          if pg_isready -h postgres -U bridge > /dev/null 2>&1; then
             echo "==> Postgres is ready"
             break
           fi
