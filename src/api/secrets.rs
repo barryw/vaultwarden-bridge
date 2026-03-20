@@ -39,8 +39,9 @@ fn extract_source_ip(headers: &HeaderMap, fallback: &str) -> String {
 pub async fn get_secret(
     State(state): State<AppState>,
     headers: HeaderMap,
-    Path(key): Path<String>,
+    Path(raw_key): Path<String>,
 ) -> Result<Json<Value>, AppError> {
+    let key = raw_key.trim_start_matches('/').to_string();
     let source_ip = extract_source_ip(&headers, "unknown");
     let client_version = extract_client_version(&headers);
 
