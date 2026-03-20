@@ -8,9 +8,7 @@ pub fn evaluate_access(
     policies.iter().any(|p| match p.target_type {
         TargetType::Item => p.target_value == requested_key,
         TargetType::Glob => glob_match::glob_match(&p.target_value, requested_key),
-        TargetType::Collection => item_collection_ids
-            .iter()
-            .any(|cid| cid == &p.target_value),
+        TargetType::Collection => item_collection_ids.iter().any(|cid| cid == &p.target_value),
     })
 }
 

@@ -60,12 +60,10 @@ pub async fn insert(pool: &PgPool, entry: &NewAuditEntry<'_>) -> Result<(), sqlx
 }
 
 pub async fn list_recent(pool: &PgPool, limit: i64) -> Result<Vec<AuditEntry>, sqlx::Error> {
-    sqlx::query_as::<_, AuditEntry>(
-        "SELECT * FROM audit_log ORDER BY created_at DESC LIMIT $1",
-    )
-    .bind(limit)
-    .fetch_all(pool)
-    .await
+    sqlx::query_as::<_, AuditEntry>("SELECT * FROM audit_log ORDER BY created_at DESC LIMIT $1")
+        .bind(limit)
+        .fetch_all(pool)
+        .await
 }
 
 pub async fn list_filtered(

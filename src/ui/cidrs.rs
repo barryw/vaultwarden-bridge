@@ -31,7 +31,10 @@ pub async fn list(State(state): State<AppState>) -> CidrsTemplate {
     let api_rules = db::cidr_rules::list_by_scope(&state.pool, CidrScope::Api)
         .await
         .unwrap_or_default();
-    CidrsTemplate { ui_rules, api_rules }
+    CidrsTemplate {
+        ui_rules,
+        api_rules,
+    }
 }
 
 pub async fn create(State(state): State<AppState>, Form(form): Form<CreateCidrForm>) -> Redirect {

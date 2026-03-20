@@ -16,9 +16,13 @@ pub struct DashboardTemplate {
 }
 
 pub async fn dashboard(State(state): State<AppState>) -> DashboardTemplate {
-    let keys = db::machine_keys::list(&state.pool).await.unwrap_or_default();
+    let keys = db::machine_keys::list(&state.pool)
+        .await
+        .unwrap_or_default();
     let enabled_count = keys.iter().filter(|k| k.enabled).count();
-    let recent_audits = db::audit::list_recent(&state.pool, 10).await.unwrap_or_default();
+    let recent_audits = db::audit::list_recent(&state.pool, 10)
+        .await
+        .unwrap_or_default();
     let bw_healthy = state.bw.is_healthy().await;
 
     DashboardTemplate {

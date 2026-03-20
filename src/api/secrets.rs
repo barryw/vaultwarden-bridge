@@ -73,9 +73,12 @@ pub async fn get_secret(
     let policies = db::access_policies::list_for_key(&state.pool, machine_key.id).await?;
 
     // Search bw serve for the item
-    let items = state.bw.client.list_items(Some(&key)).await.map_err(|e| {
-        AppError::ServiceUnavailable(format!("bw serve error: {}", e))
-    })?;
+    let items = state
+        .bw
+        .client
+        .list_items(Some(&key))
+        .await
+        .map_err(|e| AppError::ServiceUnavailable(format!("bw serve error: {}", e)))?;
 
     // Find exact name match
     let item = items.iter().find(|i| i.name == key);

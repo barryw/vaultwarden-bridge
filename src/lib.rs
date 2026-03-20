@@ -44,7 +44,11 @@ pub async fn app(pool: PgPool, config: Config) -> anyhow::Result<Router> {
     };
 
     let api_routes = api::router(state.clone());
-    let ui_routes = ui::router(state.clone(), &config.admin_username, &config.admin_password);
+    let ui_routes = ui::router(
+        state.clone(),
+        &config.admin_username,
+        &config.admin_password,
+    );
 
     let app = Router::new()
         .nest("/api", api_routes)

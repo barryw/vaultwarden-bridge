@@ -25,7 +25,9 @@ pub struct CreateKeyForm {
 }
 
 pub async fn list(State(state): State<AppState>) -> KeysTemplate {
-    let keys = db::machine_keys::list(&state.pool).await.unwrap_or_default();
+    let keys = db::machine_keys::list(&state.pool)
+        .await
+        .unwrap_or_default();
     KeysTemplate {
         keys,
         flash_message: None,
@@ -42,7 +44,9 @@ pub async fn create(
 
     match db::machine_keys::create(&state.pool, &form.name, &hash).await {
         Ok(_) => {
-            let keys = db::machine_keys::list(&state.pool).await.unwrap_or_default();
+            let keys = db::machine_keys::list(&state.pool)
+                .await
+                .unwrap_or_default();
             KeysTemplate {
                 keys,
                 flash_message: None,
@@ -50,7 +54,9 @@ pub async fn create(
             }
         }
         Err(e) => {
-            let keys = db::machine_keys::list(&state.pool).await.unwrap_or_default();
+            let keys = db::machine_keys::list(&state.pool)
+                .await
+                .unwrap_or_default();
             KeysTemplate {
                 keys,
                 flash_message: Some(format!("Error: {}", e)),

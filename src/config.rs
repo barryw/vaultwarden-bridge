@@ -19,9 +19,7 @@ pub fn parse_cidrs(s: &str) -> Result<Vec<IpNet>, ipnet::AddrParseError> {
     if s.trim().is_empty() {
         return Ok(vec![]);
     }
-    s.split(',')
-        .map(|c| c.trim().parse::<IpNet>())
-        .collect()
+    s.split(',').map(|c| c.trim().parse::<IpNet>()).collect()
 }
 
 impl Config {
@@ -36,12 +34,8 @@ impl Config {
                 .parse()?,
             admin_username: env::var("BRIDGE_ADMIN_USERNAME")?,
             admin_password: env::var("BRIDGE_ADMIN_PASSWORD")?,
-            ui_allow_cidrs: parse_cidrs(
-                &env::var("BRIDGE_UI_ALLOW_CIDRS").unwrap_or_default(),
-            )?,
-            api_allow_cidrs: parse_cidrs(
-                &env::var("BRIDGE_API_ALLOW_CIDRS").unwrap_or_default(),
-            )?,
+            ui_allow_cidrs: parse_cidrs(&env::var("BRIDGE_UI_ALLOW_CIDRS").unwrap_or_default())?,
+            api_allow_cidrs: parse_cidrs(&env::var("BRIDGE_API_ALLOW_CIDRS").unwrap_or_default())?,
             listen_port: env::var("BRIDGE_LISTEN_PORT")
                 .unwrap_or_else(|_| "8080".to_string())
                 .parse()?,
