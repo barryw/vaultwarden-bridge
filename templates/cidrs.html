@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}CIDR Rules — Vaultwarden Bridge{% endblock %}
+{% block content %}
+<h1>CIDR Access Rules</h1>
+
+<div class="card">
+    <h2>Add Rule</h2>
+    <form method="POST" action="/ui/cidrs" style="display:flex;gap:0.5rem;align-items:end;">
+        <div class="form-group">
+            <label>Scope</label>
+            <select name="scope">
+                <option value="ui">Web UI</option>
+                <option value="api">API</option>
+            </select>
+        </div>
+        <div class="form-group" style="flex:1;">
+            <label>CIDR</label>
+            <input type="text" name="cidr" required placeholder="e.g. 10.0.0.0/8" style="width:100%;">
+        </div>
+        <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+    <div class="card">
+        <h2>UI Access</h2>
+        <table>
+            <thead><tr><th>CIDR</th><th>Actions</th></tr></thead>
+            <tbody>
+                {% for rule in ui_rules %}
+                <tr>
+                    <td class="mono">{{ rule.cidr }}</td>
+                    <td><a href="/ui/cidrs/{{ rule.id }}/delete" class="btn btn-sm btn-danger">Remove</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card">
+        <h2>API Access</h2>
+        <table>
+            <thead><tr><th>CIDR</th><th>Actions</th></tr></thead>
+            <tbody>
+                {% for rule in api_rules %}
+                <tr>
+                    <td class="mono">{{ rule.cidr }}</td>
+                    <td><a href="/ui/cidrs/{{ rule.id }}/delete" class="btn btn-sm btn-danger">Remove</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
