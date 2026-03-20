@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Machine Keys — Vaultwarden Bridge{% endblock %}
+{% block content %}
+<h1>Machine Keys</h1>
+
+{% if let Some(msg) = flash_message %}
+<div class="flash flash-success">{{ msg }}</div>
+{% endif %}
+
+{% if let Some(key) = new_api_key %}
+<div class="flash flash-success">
+    <strong>API Key created. Copy it now — it won't be shown again:</strong>
+    <div class="mono" style="margin-top:0.5rem;">{{ key }}</div>
+</div>
+{% endif %}
+
+<div class="card">
+    <h2>Create New Key</h2>
+    <form method="POST" action="/ui/keys" style="display:flex;gap:0.5rem;align-items:end;">
+        <div class="form-group" style="flex:1;">
+            <label>Name</label>
+            <input type="text" name="name" required placeholder="e.g. terraform-prod-ci" style="width:100%;">
+        </div>
+        <button type="submit" class="btn btn-primary">Create</button>
+    </form>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr><th>Name</th><th>Status</th><th>Expires</th><th>Created</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for key in keys %}
+            <tr>
+                <td>{{ key.name }}</td>
+                <td>
+                    {% if key.enabled %}
+                    <span class="badge badge-green">Enabled</span>
+                    {% else %}
+                    <span class="badge badge-red">Disabled</span>
+                    {% endif %}
+                </td>
+                <td>{% if let Some(exp) = key.expires_at %}{{ exp }}{% else %}Never{% endif %}</td>
+                <td>{{ key.created_at }}</td>
+                <td>
+                    <a href="/ui/keys/{{ key.id }}/toggle" class="btn btn-sm btn-primary">
+                        {% if key.enabled %}Disable{% else %}Enable{% endif %}
+                    </a>
+                    <a href="/ui/keys/{{ key.id }}/policies" class="btn btn-sm btn-primary">Policies</a>
+                    <a href="/ui/keys/{{ key.id }}/delete" class="btn btn-sm btn-danger"
+                       onclick="return confirm('Delete this key?')">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
