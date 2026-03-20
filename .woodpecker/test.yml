@@ -90,5 +90,5 @@ steps:
       - apt-get update && apt-get install -y curl unzip
       - curl -fsSL "https://github.com/bitwarden/clients/releases/download/cli-v2024.4.0/bw-linux-2024.4.0.zip" -o /tmp/bw.zip
       - unzip /tmp/bw.zip -d /usr/local/bin && chmod +x /usr/local/bin/bw
-      - cargo test --test integration
+      - cargo test --test integration -- --test-threads=1
     depends_on: [seed-vaultwarden]
