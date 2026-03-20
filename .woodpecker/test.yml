@@ -14,11 +14,13 @@ services:
 
   - name: vaultwarden
     image: vaultwarden/server:latest
+    ports:
+      - 80
     environment:
       DOMAIN: http://vaultwarden
       SIGNUPS_ALLOWED: "true"
-      LOG_LEVEL: info
       ROCKET_PORT: "80"
+      I_REALLY_WANT_VOLATILE_STORAGE: "true"
 
 steps:
   - name: lint
@@ -47,24 +49,47 @@ steps:
       - unzip /tmp/bw.zip -d /usr/local/bin && chmod +x /usr/local/bin/bw
       - |
         echo "==> Waiting for Vaultwarden..."
-        for i in $(seq 1 30); do
-          curl -sf http://vaultwarden/alive > /dev/null 2>&1 && break
-          [ "$i" -eq 30 ] && echo "Vaultwarden not ready" && exit 1
+        for i in $(seq 1 60); do
+          if curl -sf http://vaultwarden:80/alive > /dev/null 2>&1; then
+            echo "==> Vaultwarden is ready"
+            break
+          fi
+          if [ "$i" -eq 60 ]; then
+            echo "ERROR: Vaultwarden not ready after 60s"
+            echo "Trying to debug..."
+            curl -v http://vaultwarden:80/ 2>&1 || true
+            exit 1
+          fi
           sleep 1
         done
       - |
         echo "==> Waiting for Postgres..."
         for i in $(seq 1 30); do
-          (echo > /dev/tcp/postgres/5432) 2>/dev/null && break
+          if curl -sf http://postgres:5432 > /dev/null 2>&1 || nc -z postgres 5432 2>/dev/null; then
+            echo "==> Postgres is ready"
+            break
+          fi
           [ "$i" -eq 30 ] && echo "Postgres not ready" && exit 1
           sleep 1
         done
-      - bw config server http://vaultwarden
-      - export BW_NOINTERACTION=true
       - |
-        bw login bridge-test@example.com TestPassword123! --raw || true
-        SESSION=$(bw unlock TestPassword123! --raw)
+        export BW_NOINTERACTION=true
+        bw config server http://vaultwarden:80
+        echo "==> Registering test account..."
+        curl -sf -X POST "http://vaultwarden:80/api/accounts/register" \
+          -H "Content-Type: application/json" \
+          -d '{"name":"Bridge Test","email":"bridge-test@example.com","masterPasswordHash":"'$(echo -n 'bridge-test@example.comTestPassword123!' | openssl dgst -sha256 -binary | openssl dgst -sha256 -binary | base64)'","masterPasswordHint":"test","key":"dummy"}' || echo "Registration may have failed, trying login anyway..."
+        echo "==> Logging in..."
+        SESSION=$(bw login bridge-test@example.com TestPassword123! --raw 2>/dev/null) || true
+        if [ -z "$SESSION" ]; then
+          SESSION=$(bw unlock TestPassword123! --raw 2>/dev/null) || true
+        fi
+        if [ -z "$SESSION" ]; then
+          echo "ERROR: Could not get session"
+          exit 1
+        fi
         export BW_SESSION="$SESSION"
+        echo "==> Creating test items..."
         bw create item "$(echo '{"type":1,"name":"prod/db/password","login":{"username":"db_admin","password":"super-secret-db-password"}}' | bw encode)" > /dev/null
         bw create item "$(echo '{"type":1,"name":"prod/api/token","login":{"username":"api-service","password":"api-token-12345"}}' | bw encode)" > /dev/null
         bw create item "$(echo '{"type":1,"name":"staging/db/password","login":{"username":"db_staging","password":"staging-db-password"}}' | bw encode)" > /dev/null
