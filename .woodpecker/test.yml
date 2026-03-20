@@ -46,7 +46,7 @@ steps:
     image: debian:bookworm-slim
     commands:
       - apt-get update && apt-get install -y curl unzip jq
-      - curl -fsSL "https://vault.bitwarden.com/download/?app=cli&platform=linux" -o /tmp/bw.zip
+      - curl -fsSL "https://github.com/bitwarden/clients/releases/download/cli-v2024.4.0/bw-linux-2024.4.0.zip" -o /tmp/bw.zip
       - unzip /tmp/bw.zip -d /usr/local/bin && chmod +x /usr/local/bin/bw
       - |
         echo "==> Waiting for Vaultwarden..."
@@ -116,7 +116,7 @@ steps:
       BRIDGE_LISTEN_PORT: "8080"
     commands:
       - apt-get update && apt-get install -y curl unzip
-      - curl -fsSL "https://vault.bitwarden.com/download/?app=cli&platform=linux" -o /tmp/bw.zip
+      - curl -fsSL "https://github.com/bitwarden/clients/releases/download/cli-v2024.4.0/bw-linux-2024.4.0.zip" -o /tmp/bw.zip
       - unzip /tmp/bw.zip -d /usr/local/bin && chmod +x /usr/local/bin/bw
       - cargo test --test integration
     depends_on: [seed-vaultwarden]
