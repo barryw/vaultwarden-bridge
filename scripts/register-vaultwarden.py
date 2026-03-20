@@ -3,6 +3,7 @@
 
 import hashlib
 import base64
+import hmac as hmac_mod
 import json
 import os
 import subprocess
@@ -16,63 +17,121 @@ PASSWORD = os.environ.get("TEST_PASSWORD", "TestPassword123!")
 KDF_ITERATIONS = 600000
 
 
-def pbkdf2(password: bytes, salt: bytes, iterations: int) -> bytes:
-    return hashlib.pbkdf2_hmac("sha256", password, salt, iterations, dklen=32)
+def pbkdf2(password: bytes, salt: bytes, iterations: int, dklen: int = 32) -> bytes:
+    return hashlib.pbkdf2_hmac("sha256", password, salt, iterations, dklen=dklen)
 
 
-def register_account():
-    """Register an account using the Bitwarden-compatible API."""
-    master_key = pbkdf2(PASSWORD.encode(), EMAIL.lower().encode(), KDF_ITERATIONS)
-    master_password_hash = base64.b64encode(
-        pbkdf2(master_key, PASSWORD.encode(), 1)
+def hkdf_expand(prk: bytes, info: bytes, length: int) -> bytes:
+    """HKDF-Expand (RFC 5869) with SHA-256."""
+    hash_len = 32
+    n = (length + hash_len - 1) // hash_len
+    okm = b""
+    t = b""
+    for i in range(1, n + 1):
+        t = hmac_mod.new(prk, t + info + bytes([i]), hashlib.sha256).digest()
+        okm += t
+    return okm[:length]
+
+
+def make_master_key() -> bytes:
+    return pbkdf2(PASSWORD.encode("utf-8"), EMAIL.lower().encode("utf-8"), KDF_ITERATIONS)
+
+
+def make_master_password_hash(master_key: bytes) -> str:
+    return base64.b64encode(
+        pbkdf2(master_key, PASSWORD.encode("utf-8"), 1)
     ).decode()
 
-    # Generate a 64-byte symmetric key and encrypt it with master key (simplified)
-    # For Vaultwarden, we need a properly formatted encrypted key
-    sym_key = os.urandom(64)
 
-    # Bitwarden encryption format: type.iv|ct|mac (type 2 = AES-CBC-256 + HMAC-SHA256)
-    import hmac
-    from hashlib import sha256
+def stretch_key(master_key: bytes) -> tuple[bytes, bytes]:
+    """Stretch master key into encryption key (32 bytes) and MAC key (32 bytes)
+    using HKDF-Expand."""
+    enc_key = hkdf_expand(master_key, b"enc", 32)
+    mac_key = hkdf_expand(master_key, b"mac", 32)
+    return enc_key, mac_key
 
-    # Stretch master key into enc_key (32 bytes) and mac_key (32 bytes)
-    enc_key = pbkdf2(master_key, b"enc", 1)
-    mac_key = pbkdf2(master_key, b"mac", 1)
 
-    # AES-CBC encrypt the symmetric key
-    # We need to pad the symmetric key to AES block size
-    from struct import pack
-
-    pad_len = 16 - (len(sym_key) % 16)
-    padded = sym_key + bytes([pad_len] * pad_len)
+def encrypt_aes_cbc(data: bytes, enc_key: bytes, mac_key: bytes) -> str:
+    """Encrypt data with AES-256-CBC + HMAC-SHA256, return Bitwarden format string."""
+    # PKCS7 padding
+    pad_len = 16 - (len(data) % 16)
+    padded = data + bytes([pad_len] * pad_len)
 
     iv = os.urandom(16)
 
-    # Pure Python AES-CBC is complex; use openssl via subprocess
+    # AES-CBC encrypt via openssl
     proc = subprocess.run(
         ["openssl", "enc", "-aes-256-cbc", "-nosalt", "-nopad",
          "-K", enc_key.hex(), "-iv", iv.hex()],
         input=padded,
         capture_output=True,
     )
+    if proc.returncode != 0:
+        raise RuntimeError(f"openssl enc failed: {proc.stderr.decode()}")
     ct = proc.stdout
 
-    # HMAC
-    mac = hmac.new(mac_key, iv + ct, sha256).digest()
+    # HMAC-SHA256 over iv + ct
+    mac = hmac_mod.new(mac_key, iv + ct, hashlib.sha256).digest()
 
-    # Format: "2.{base64_iv}|{base64_ct}|{base64_mac}"
-    encrypted_key = "2.{}|{}|{}".format(
+    # Bitwarden format: "2.{b64_iv}|{b64_ct}|{b64_mac}"
+    return "2.{}|{}|{}".format(
         base64.b64encode(iv).decode(),
         base64.b64encode(ct).decode(),
         base64.b64encode(mac).decode(),
     )
+
+
+def generate_rsa_keypair(enc_key: bytes, mac_key: bytes) -> tuple[str, str]:
+    """Generate RSA-2048 keypair. Return (public_key_b64, encrypted_private_key)."""
+    # Generate RSA key
+    proc = subprocess.run(
+        ["openssl", "genpkey", "-algorithm", "RSA",
+         "-pkeyopt", "rsa_keygen_bits:2048", "-outform", "DER"],
+        capture_output=True,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(f"openssl genpkey failed: {proc.stderr.decode()}")
+    private_der = proc.stdout
+
+    # Extract public key
+    proc = subprocess.run(
+        ["openssl", "pkey", "-inform", "DER", "-pubout", "-outform", "DER"],
+        input=private_der,
+        capture_output=True,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(f"openssl pkey failed: {proc.stderr.decode()}")
+    public_der = proc.stdout
+
+    public_b64 = base64.b64encode(public_der).decode()
+    encrypted_private = encrypt_aes_cbc(private_der, enc_key, mac_key)
+
+    return public_b64, encrypted_private
+
+
+def register_account():
+    """Register an account using the Bitwarden-compatible API."""
+    master_key = make_master_key()
+    master_password_hash = make_master_password_hash(master_key)
+    enc_key, mac_key = stretch_key(master_key)
+
+    # Generate a 64-byte symmetric key (32 bytes enc + 32 bytes mac)
+    sym_key = os.urandom(64)
+    encrypted_sym_key = encrypt_aes_cbc(sym_key, enc_key, mac_key)
+
+    # Generate RSA keypair
+    public_key, encrypted_private_key = generate_rsa_keypair(enc_key, mac_key)
 
     payload = json.dumps({
         "name": "Bridge Test",
         "email": EMAIL,
         "masterPasswordHash": master_password_hash,
         "masterPasswordHint": "test",
-        "key": encrypted_key,
+        "key": encrypted_sym_key,
+        "keys": {
+            "publicKey": public_key,
+            "encryptedPrivateKey": encrypted_private_key,
+        },
         "kdf": 0,
         "kdfIterations": KDF_ITERATIONS,
     }).encode()
@@ -115,7 +174,7 @@ def bw_login() -> str:
     if result.returncode == 0 and result.stdout.strip():
         return result.stdout.strip()
 
-    print(f"Login failed: {result.stderr}", file=sys.stderr)
+    print(f"Login failed: stdout={result.stdout} stderr={result.stderr}", file=sys.stderr)
     sys.exit(1)
 
 
@@ -139,13 +198,12 @@ def bw_create_item(session: str, name: str, username: str, password: str):
         env={**os.environ, "BW_SESSION": session},
     )
     if result.returncode != 0:
-        print(f"Failed to create '{name}': {result.stderr}", file=sys.stderr)
+        print(f"  Failed '{name}': {result.stderr.strip()}")
     else:
         print(f"  Created: {name}")
 
 
 def main():
-    # Configure bw CLI
     subprocess.run(["bw", "config", "server", VAULTWARDEN_URL], capture_output=True)
 
     print("==> Registering account...")
