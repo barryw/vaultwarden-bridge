@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Audit Log — Vaultwarden Bridge{% endblock %}
+{% block content %}
+<h1>Audit Log</h1>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Action</th>
+                <th>Target Requested</th>
+                <th>Target Resolved</th>
+                <th>Source IP</th>
+                <th>Client Version</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in entries %}
+            <tr>
+                <td>{{ entry.created_at }}</td>
+                <td>{{ entry.action }}</td>
+                <td>{{ entry.target_requested }}</td>
+                <td>{% if let Some(resolved) = entry.target_resolved %}{{ resolved }}{% else %}—{% endif %}</td>
+                <td>{{ entry.source_ip }}</td>
+                <td>{% if let Some(ver) = entry.client_version %}{{ ver }}{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
