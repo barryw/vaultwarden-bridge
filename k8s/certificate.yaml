@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: vault-bridge-lan-tls
+  namespace: vaultwarden-bridge
+spec:
+  commonName: vault-bridge.lan
+  dnsNames:
+    - vault-bridge.lan
+  issuerRef:
+    kind: ClusterIssuer
+    name: internal-ca-issuer
+  secretName: vault-bridge-lan-tls

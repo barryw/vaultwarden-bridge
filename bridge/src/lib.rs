@@ -11,6 +11,8 @@ pub mod state;
 pub mod ui;
 
 use axum::Router;
+use axum::response::Redirect;
+use axum::routing::get;
 use sqlx::PgPool;
 use std::sync::Arc;
 
@@ -52,6 +54,7 @@ pub async fn app(pool: PgPool, config: Config) -> anyhow::Result<Router> {
     );
 
     let app = Router::new()
+        .route("/", get(|| async { Redirect::permanent("/ui/") }))
         .nest("/api", api_routes)
         .nest("/ui", ui_routes);
 

@@ -5,6 +5,10 @@ metadata:
   namespace: vaultwarden-bridge
 spec:
   ingressClassName: traefik
+  tls:
+    - hosts:
+        - vault-bridge.lan
+      secretName: vault-bridge-lan-tls
   rules:
     - host: vault-bridge.lan
       http:
