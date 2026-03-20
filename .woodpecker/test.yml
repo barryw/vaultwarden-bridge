@@ -43,60 +43,33 @@ steps:
     depends_on: [unit-test]
 
   - name: seed-vaultwarden
-    image: debian:bookworm-slim
+    image: python:3.12-slim-bookworm
+    environment:
+      VAULTWARDEN_URL: http://vaultwarden:80
+      TEST_EMAIL: bridge-test@example.com
+      TEST_PASSWORD: TestPassword123!
+      BW_NOINTERACTION: "true"
     commands:
-      - apt-get update && apt-get install -y curl unzip jq
+      - apt-get update && apt-get install -y curl unzip openssl postgresql-client > /dev/null 2>&1
       - curl -fsSL "https://github.com/bitwarden/clients/releases/download/cli-v2024.4.0/bw-linux-2024.4.0.zip" -o /tmp/bw.zip
       - unzip /tmp/bw.zip -d /usr/local/bin && chmod +x /usr/local/bin/bw
       - |
         echo "==> Waiting for Vaultwarden..."
         for i in $(seq 1 60); do
-          if curl -sf http://vaultwarden:80/alive > /dev/null 2>&1; then
-            echo "==> Vaultwarden is ready"
-            break
-          fi
-          if [ "$i" -eq 60 ]; then
-            echo "ERROR: Vaultwarden not ready after 60s"
-            echo "Trying to debug..."
-            curl -v http://vaultwarden:80/ 2>&1 || true
-            exit 1
-          fi
+          curl -sf http://vaultwarden:80/alive > /dev/null 2>&1 && break
+          [ "$i" -eq 60 ] && echo "Vaultwarden not ready" && exit 1
           sleep 1
         done
-      - apt-get install -y postgresql-client > /dev/null 2>&1
+        echo "==> Vaultwarden is ready"
       - |
         echo "==> Waiting for Postgres..."
         for i in $(seq 1 30); do
-          if pg_isready -h postgres -U bridge > /dev/null 2>&1; then
-            echo "==> Postgres is ready"
-            break
-          fi
+          pg_isready -h postgres -U bridge > /dev/null 2>&1 && break
           [ "$i" -eq 30 ] && echo "Postgres not ready" && exit 1
           sleep 1
         done
-      - |
-        export BW_NOINTERACTION=true
-        bw config server http://vaultwarden:80
-        echo "==> Logging in (creates account on first login with Vaultwarden)..."
-        SESSION=$(bw login bridge-test@example.com TestPassword123! --raw 2>&1) || true
-        if [ -z "$SESSION" ] || echo "$SESSION" | grep -qi error; then
-          echo "Login output: $SESSION"
-          echo "==> Login failed, trying unlock..."
-          SESSION=$(bw unlock TestPassword123! --raw 2>&1) || true
-        fi
-        if [ -z "$SESSION" ] || echo "$SESSION" | grep -qi error; then
-          echo "Session output: $SESSION"
-          echo "ERROR: Could not get session"
-          exit 1
-        fi
-        export BW_SESSION="$SESSION"
-        echo "==> Creating test items..."
-        bw create item "$(echo '{"type":1,"name":"prod/db/password","login":{"username":"db_admin","password":"super-secret-db-password"}}' | bw encode)" > /dev/null
-        bw create item "$(echo '{"type":1,"name":"prod/api/token","login":{"username":"api-service","password":"api-token-12345"}}' | bw encode)" > /dev/null
-        bw create item "$(echo '{"type":1,"name":"staging/db/password","login":{"username":"db_staging","password":"staging-db-password"}}' | bw encode)" > /dev/null
-        bw create item "$(echo '{"type":1,"name":"denied-secret","login":{"username":"nope","password":"you-shall-not-pass"}}' | bw encode)" > /dev/null
-        bw sync
-        echo "==> Seeded 4 test items"
+        echo "==> Postgres is ready"
+      - python3 scripts/register-vaultwarden.py
     depends_on: [build]
 
   - name: integration-test
