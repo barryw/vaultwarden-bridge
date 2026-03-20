@@ -1,9 +1,9 @@
 use axum::{
+    Json,
     extract::{Path, State},
     http::HeaderMap,
-    Json,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::auth;
 use crate::db;

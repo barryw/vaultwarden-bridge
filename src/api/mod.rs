@@ -2,7 +2,7 @@ pub mod health;
 pub mod secrets;
 
 use crate::state::AppState;
-use axum::{routing::get, Router};
+use axum::{Router, routing::get};
 
 pub fn router(state: AppState) -> Router {
     Router::new()

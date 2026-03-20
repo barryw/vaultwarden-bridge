@@ -6,7 +6,7 @@ pub mod keys;
 pub mod policies;
 
 use crate::state::AppState;
-use axum::{routing::get, Router};
+use axum::{Router, routing::get};
 
 pub fn router(state: AppState, _admin_username: &str, _admin_password: &str) -> Router {
     Router::new()
