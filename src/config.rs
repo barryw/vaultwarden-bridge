@@ -23,9 +23,25 @@ pub fn parse_cidrs(s: &str) -> Result<Vec<IpNet>, ipnet::AddrParseError> {
 }
 
 impl Config {
+    /// Build DATABASE_URL from either DATABASE_URL directly or DB_HOST/DB_NAME/DB_USERNAME/DB_PASSWORD components.
+    fn resolve_database_url() -> anyhow::Result<String> {
+        if let Ok(url) = env::var("DATABASE_URL") {
+            return Ok(url);
+        }
+        let host = env::var("DB_HOST")?;
+        let name = env::var("DB_NAME").unwrap_or_else(|_| "vaultwarden_bridge".to_string());
+        let username = env::var("DB_USERNAME")?;
+        let password = env::var("DB_PASSWORD")?;
+        let port = env::var("DB_PORT").unwrap_or_else(|_| "5432".to_string());
+        Ok(format!(
+            "postgres://{}:{}@{}:{}/{}",
+            username, password, host, port, name
+        ))
+    }
+
     pub fn from_env() -> anyhow::Result<Self> {
         Ok(Self {
-            database_url: env::var("DATABASE_URL")?,
+            database_url: Self::resolve_database_url()?,
             bw_server_url: env::var("BW_SERVER_URL")?,
             bw_email: env::var("BW_EMAIL")?,
             bw_password: env::var("BW_PASSWORD")?,
