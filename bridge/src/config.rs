@@ -41,24 +41,45 @@ impl Config {
     }
 
     pub fn from_env() -> anyhow::Result<Self> {
+        let bw_serve_external = env::var("BW_SERVE_EXTERNAL")
+            .unwrap_or_default()
+            .eq_ignore_ascii_case("true");
+
+        let bw_email = env::var("BW_EMAIL").unwrap_or_default();
+        let bw_password = env::var("BW_PASSWORD").unwrap_or_default();
+
+        if !bw_serve_external && (bw_email.is_empty() || bw_password.is_empty()) {
+            anyhow::bail!(
+                "BW_EMAIL and BW_PASSWORD are required when BW_SERVE_EXTERNAL is not true"
+            );
+        }
+
+        let ui_allow_cidrs = parse_cidrs(&env::var("BRIDGE_UI_ALLOW_CIDRS").unwrap_or_default())?;
+        let api_allow_cidrs = parse_cidrs(&env::var("BRIDGE_API_ALLOW_CIDRS").unwrap_or_default())?;
+
+        if ui_allow_cidrs.is_empty() {
+            tracing::warn!("BRIDGE_UI_ALLOW_CIDRS is empty — all UI access will be denied");
+        }
+        if api_allow_cidrs.is_empty() {
+            tracing::warn!("BRIDGE_API_ALLOW_CIDRS is empty — all API access will be denied");
+        }
+
         Ok(Self {
             database_url: Self::resolve_database_url()?,
             bw_server_url: env::var("BW_SERVER_URL")?,
-            bw_email: env::var("BW_EMAIL")?,
-            bw_password: env::var("BW_PASSWORD")?,
+            bw_email,
+            bw_password,
             bw_serve_port: env::var("BW_SERVE_PORT")
                 .unwrap_or_else(|_| "8087".to_string())
                 .parse()?,
             admin_username: env::var("BRIDGE_ADMIN_USERNAME")?,
             admin_password: env::var("BRIDGE_ADMIN_PASSWORD")?,
-            ui_allow_cidrs: parse_cidrs(&env::var("BRIDGE_UI_ALLOW_CIDRS").unwrap_or_default())?,
-            api_allow_cidrs: parse_cidrs(&env::var("BRIDGE_API_ALLOW_CIDRS").unwrap_or_default())?,
+            ui_allow_cidrs,
+            api_allow_cidrs,
             listen_port: env::var("BRIDGE_LISTEN_PORT")
                 .unwrap_or_else(|_| "8080".to_string())
                 .parse()?,
-            bw_serve_external: env::var("BW_SERVE_EXTERNAL")
-                .unwrap_or_default()
-                .eq_ignore_ascii_case("true"),
+            bw_serve_external,
         })
     }
 }

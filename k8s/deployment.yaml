@@ -38,6 +38,13 @@ spec:
         - name: vaultwarden-bridge
           image: ghcr.io/barryw/vaultwarden-bridge:latest
           imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65532
+            capabilities:
+              drop: [ALL]
           ports:
             - containerPort: 8080
           env:
@@ -57,10 +64,6 @@ spec:
                   key: password
             - name: BW_SERVER_URL
               value: "https://vault.lan"
-            - name: BW_EMAIL
-              value: "unused"
-            - name: BW_PASSWORD
-              value: "unused"
             - name: BW_SERVE_PORT
               value: "8087"
             - name: BW_SERVE_EXTERNAL
@@ -111,6 +114,12 @@ spec:
         - name: bw-serve
           image: ghcr.io/barryw/vwb-bw-serve:latest
           imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop: [ALL]
           command:
             - /bin/sh
             - -c

@@ -34,10 +34,26 @@ impl std::fmt::Display for VwbError {
     }
 }
 
+fn build_client() -> Result<reqwest::blocking::Client, VwbError> {
+    let mut builder = reqwest::blocking::Client::builder();
+
+    if let Ok(ca_path) = env::var("VWB_CA_CERT") {
+        let pem = std::fs::read(&ca_path)
+            .map_err(|e| VwbError::Request(format!("failed to read CA cert {}: {}", ca_path, e)))?;
+        let cert = reqwest::Certificate::from_pem(&pem)
+            .map_err(|e| VwbError::Request(format!("invalid CA cert: {}", e)))?;
+        builder = builder.add_root_certificate(cert);
+    }
+
+    builder
+        .build()
+        .map_err(|e| VwbError::Request(e.to_string()))
+}
+
 fn fetch(addr: &str, token: &str, key: &str) -> Result<String, VwbError> {
     let url = format!("{}/api/v1/secret/{}", addr.trim_end_matches('/'), key);
 
-    let client = reqwest::blocking::Client::new();
+    let client = build_client()?;
     let resp = client
         .get(&url)
         .header("Authorization", format!("Bearer {}", token))
