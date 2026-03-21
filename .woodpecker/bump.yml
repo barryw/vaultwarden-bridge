@@ -1,6 +1,7 @@
 when:
   - event: push
     branch: main
+    evaluate: '!CI_COMMIT_MESSAGE.contains("[skip ci]")'
 
 labels:
   platform: linux/amd64
@@ -30,6 +31,6 @@ steps:
         git remote set-url origin "https://x-access-token:$GITHUB_TOKEN@github.com/${CI_REPO}.git"
         git fetch origin main
         git checkout -B main origin/main
-        cog bump --auto || { echo "No version bump needed"; exit 0; }
+        cog bump --auto --skip-ci || { echo "No version bump needed"; exit 0; }
         git push -u origin main --follow-tags
         echo "Current version: $(cog get-version)"
