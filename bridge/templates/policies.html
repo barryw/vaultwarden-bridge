@@ -29,9 +29,9 @@
                    style="width:100%;"
                    autocomplete="off"
                    hx-get="/ui/api/vault-items"
-                   hx-trigger="keyup changed delay:200ms"
+                   hx-trigger="input delay:300ms"
                    hx-target="#suggestions"
-                   hx-include="[id='target-value']">
+                   hx-swap="innerHTML">
             <div id="suggestions"></div>
         </div>
         <button type="submit" class="btn btn-primary">Add</button>
