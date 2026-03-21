@@ -45,7 +45,6 @@ steps:
         kubectl apply -f k8s/namespace.yaml
         kubectl apply -f k8s/bw-appdata-configmap.yaml
         kubectl apply -f k8s/internal-ca-configmap.yaml
-        kubectl apply -f k8s/certificate.yaml
         kubectl apply -f k8s/service.yaml
         kubectl apply -f k8s/ingress.yaml
         kubectl apply -f k8s/deployment.yaml
