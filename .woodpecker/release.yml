@@ -29,14 +29,17 @@ steps:
         git config user.name "Woodpecker CI"
         git config user.email "ci@barrywalker.io"
         git remote set-url origin "https://x-access-token:$GITHUB_TOKEN@github.com/${CI_REPO}.git"
-        git fetch origin main
+        git fetch origin main --tags
         git checkout -B main origin/main
 
-        cog bump --auto --skip-ci || { echo "No version bump needed — using current version"; }
+        cog bump --auto --skip-ci || { echo "No version bump needed"; }
 
         VERSION=$(cog get-version)
         echo "Version: $VERSION"
         echo "$VERSION" > .version
+
+        # Push the bump commit and tag immediately
+        git push origin main --tags || echo "Push failed or nothing to push"
 
   - name: docker-bridge
     image: gcr.io/kaniko-project/executor:debug
@@ -106,16 +109,3 @@ steps:
       kubernetes:
         serviceAccountName: woodpecker-agent
     depends_on: [docker-bridge, docker-bw-serve]
-
-  - name: push-version
-    image: rust:1.94.0-bookworm
-    environment:
-      GITHUB_TOKEN:
-        from_secret: github_token
-    commands:
-      - |
-        git config user.name "Woodpecker CI"
-        git config user.email "ci@barrywalker.io"
-        git remote set-url origin "https://x-access-token:$GITHUB_TOKEN@github.com/${CI_REPO}.git"
-        git push -u origin main --follow-tags || echo "Nothing to push"
-    depends_on: [deploy]
