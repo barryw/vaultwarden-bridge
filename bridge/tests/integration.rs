@@ -6,9 +6,17 @@
 use reqwest::StatusCode;
 use serde_json::Value;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::time::Duration;
 
 fn bridge_url() -> String {
     std::env::var("TEST_BRIDGE_URL").unwrap_or_else(|_| "http://127.0.0.1:9090".to_string())
+}
+
+fn http_client() -> reqwest::Client {
+    reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()
+        .unwrap()
 }
 
 fn db_url() -> String {
@@ -72,7 +80,9 @@ async fn add_item_policy(prefix: &str, n: u32, item_name: &str) {
 
 #[tokio::test]
 async fn test_health_endpoint() {
-    let resp = reqwest::get(format!("{}/api/v1/health", bridge_url()))
+    let resp = http_client()
+        .get(format!("{}/api/v1/health", bridge_url()))
+        .send()
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
@@ -86,7 +96,7 @@ async fn test_secret_retrieval_with_glob_policy() {
     let (api_key, n) = create_test_key("glob").await;
     add_glob_policy("glob", n, "prod/**").await;
 
-    let resp = reqwest::Client::new()
+    let resp = http_client()
         .get(format!("{}/api/v1/secret/prod/db/password", bridge_url()))
         .header("Authorization", format!("Bearer {}", api_key))
         .send()
@@ -104,7 +114,7 @@ async fn test_secret_retrieval_with_item_policy() {
     let (api_key, n) = create_test_key("item").await;
     add_item_policy("item", n, "staging/db/password").await;
 
-    let resp = reqwest::Client::new()
+    let resp = http_client()
         .get(format!(
             "{}/api/v1/secret/staging/db/password",
             bridge_url()
@@ -124,7 +134,7 @@ async fn test_secret_retrieval_with_item_policy() {
 async fn test_access_denied_without_policy() {
     let (api_key, _) = create_test_key("nopolicy").await;
 
-    let resp = reqwest::Client::new()
+    let resp = http_client()
         .get(format!("{}/api/v1/secret/prod/db/password", bridge_url()))
         .header("Authorization", format!("Bearer {}", api_key))
         .send()
@@ -139,7 +149,7 @@ async fn test_access_denied_wrong_pattern() {
     let (api_key, n) = create_test_key("wrongpat").await;
     add_glob_policy("wrongpat", n, "staging/**").await;
 
-    let resp = reqwest::Client::new()
+    let resp = http_client()
         .get(format!("{}/api/v1/secret/prod/db/password", bridge_url()))
         .header("Authorization", format!("Bearer {}", api_key))
         .send()
@@ -151,7 +161,7 @@ async fn test_access_denied_wrong_pattern() {
 
 #[tokio::test]
 async fn test_unauthorized_no_bearer() {
-    let resp = reqwest::Client::new()
+    let resp = http_client()
         .get(format!("{}/api/v1/secret/prod/db/password", bridge_url()))
         .send()
         .await
@@ -162,7 +172,7 @@ async fn test_unauthorized_no_bearer() {
 
 #[tokio::test]
 async fn test_unauthorized_bad_key() {
-    let resp = reqwest::Client::new()
+    let resp = http_client()
         .get(format!("{}/api/v1/secret/prod/db/password", bridge_url()))
         .header("Authorization", "Bearer totally-invalid-key")
         .send()
@@ -177,7 +187,7 @@ async fn test_not_found() {
     let (api_key, n) = create_test_key("notfound").await;
     add_glob_policy("notfound", n, "**").await;
 
-    let resp = reqwest::Client::new()
+    let resp = http_client()
         .get(format!(
             "{}/api/v1/secret/nonexistent/secret/name",
             bridge_url()
@@ -195,7 +205,7 @@ async fn test_audit_log_populated() {
     let (api_key, n) = create_test_key("audit").await;
     add_glob_policy("audit", n, "prod/**").await;
 
-    reqwest::Client::new()
+    http_client()
         .get(format!("{}/api/v1/secret/prod/db/password", bridge_url()))
         .header("Authorization", format!("Bearer {}", api_key))
         .send()
@@ -216,7 +226,7 @@ async fn test_user_agent_captured_in_audit() {
     let (api_key, n) = create_test_key("ua").await;
     add_glob_policy("ua", n, "prod/**").await;
 
-    reqwest::Client::new()
+    http_client()
         .get(format!("{}/api/v1/secret/prod/db/password", bridge_url()))
         .header("Authorization", format!("Bearer {}", api_key))
         .header("User-Agent", "terraform-provider-vaultwarden-bridge/0.1.0")
@@ -242,6 +252,7 @@ async fn test_user_agent_captured_in_audit() {
 #[tokio::test]
 async fn test_root_redirects_to_ui() {
     let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
         .redirect(reqwest::redirect::Policy::none())
         .build()
         .unwrap();
@@ -257,7 +268,11 @@ async fn test_root_redirects_to_ui() {
 
 #[tokio::test]
 async fn test_ui_trailing_slash_works() {
-    let resp = reqwest::get(format!("{}/ui/", bridge_url())).await.unwrap();
+    let resp = http_client()
+        .get(format!("{}/ui/", bridge_url()))
+        .send()
+        .await
+        .unwrap();
     // Should not 404 — trailing slash gets normalized. Will redirect to login
     // (no session cookie) or show dashboard (with session). Either is fine.
     assert_ne!(resp.status(), StatusCode::NOT_FOUND);
@@ -265,7 +280,9 @@ async fn test_ui_trailing_slash_works() {
 
 #[tokio::test]
 async fn test_api_health_trailing_slash_works() {
-    let resp = reqwest::get(format!("{}/api/v1/health/", bridge_url()))
+    let resp = http_client()
+        .get(format!("{}/api/v1/health/", bridge_url()))
+        .send()
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
@@ -273,7 +290,9 @@ async fn test_api_health_trailing_slash_works() {
 
 #[tokio::test]
 async fn test_ui_keys_trailing_slash_works() {
-    let resp = reqwest::get(format!("{}/ui/keys/", bridge_url()))
+    let resp = http_client()
+        .get(format!("{}/ui/keys/", bridge_url()))
+        .send()
         .await
         .unwrap();
     // May be 200 or redirect to login - just not 404
