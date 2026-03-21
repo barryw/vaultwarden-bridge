@@ -7,6 +7,7 @@ pub struct Config {
     pub bw_server_url: String,
     pub bw_email: String,
     pub bw_password: String,
+    pub bw_serve_host: String,
     pub bw_serve_port: u16,
     pub admin_username: String,
     pub admin_password: String,
@@ -69,6 +70,7 @@ impl Config {
             bw_server_url: env::var("BW_SERVER_URL")?,
             bw_email,
             bw_password,
+            bw_serve_host: env::var("BW_SERVE_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
             bw_serve_port: env::var("BW_SERVE_PORT")
                 .unwrap_or_else(|_| "8087".to_string())
                 .parse()?,

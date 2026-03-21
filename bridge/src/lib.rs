@@ -37,6 +37,7 @@ pub async fn app(pool: PgPool, config: Config) -> anyhow::Result<Router> {
         config.bw_server_url,
         config.bw_email,
         config.bw_password,
+        config.bw_serve_host,
         config.bw_serve_port,
         config.bw_serve_external,
     ));

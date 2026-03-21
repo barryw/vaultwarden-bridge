@@ -1,22 +1,46 @@
 services:
   bridge:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "8080:8080"
     environment:
       DATABASE_URL: postgres://bridge:bridge@db:5432/vaultwarden_bridge
-      BW_SERVER_URL: ${BW_SERVER_URL}
-      BW_EMAIL: ${BW_EMAIL}
-      BW_PASSWORD: ${BW_PASSWORD}
+      BW_SERVE_HOST: bw-serve
       BW_SERVE_PORT: "8087"
+      BW_SERVE_EXTERNAL: "true"
+      BW_SERVER_URL: ${BW_SERVER_URL:?Set BW_SERVER_URL}
+      BW_EMAIL: unused
+      BW_PASSWORD: unused
       BRIDGE_ADMIN_USERNAME: ${BRIDGE_ADMIN_USERNAME:-admin}
-      BRIDGE_ADMIN_PASSWORD: ${BRIDGE_ADMIN_PASSWORD}
+      BRIDGE_ADMIN_PASSWORD: ${BRIDGE_ADMIN_PASSWORD:?Set BRIDGE_ADMIN_PASSWORD}
       BRIDGE_UI_ALLOW_CIDRS: ${BRIDGE_UI_ALLOW_CIDRS:-0.0.0.0/0}
       BRIDGE_API_ALLOW_CIDRS: ${BRIDGE_API_ALLOW_CIDRS:-0.0.0.0/0}
+      BRIDGE_LISTEN_PORT: "8080"
       RUST_LOG: ${RUST_LOG:-info}
     depends_on:
       db:
         condition: service_healthy
+      bw-serve:
+        condition: service_started
+
+  bw-serve:
+    build:
+      context: .
+      dockerfile: Dockerfile.bw-serve
+    command: |
+      set -e
+      bw config server "$$BW_SERVER_URL"
+      bw login "$$BW_EMAIL" --passwordenv BW_PASSWORD
+      export BW_SESSION=$$(echo "$$BW_PASSWORD" | bw unlock --raw)
+      bw sync --session "$$BW_SESSION"
+      exec bw serve --hostname 0.0.0.0 --port 8087 --session "$$BW_SESSION"
+    environment:
+      BW_SERVER_URL: ${BW_SERVER_URL:?Set BW_SERVER_URL}
+      BW_EMAIL: ${BW_EMAIL:?Set BW_EMAIL}
+      BW_PASSWORD: ${BW_PASSWORD:?Set BW_PASSWORD}
+      BW_NOINTERACTION: "true"
 
   db:
     image: postgres:17

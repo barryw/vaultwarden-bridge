@@ -50,9 +50,9 @@ struct BwItemResponse {
 }
 
 impl BwClient {
-    pub fn new(port: u16) -> Self {
+    pub fn new(host: &str, port: u16) -> Self {
         Self {
-            base_url: format!("http://127.0.0.1:{}", port),
+            base_url: format!("http://{}:{}", host, port),
             http: reqwest::Client::new(),
         }
     }
@@ -108,11 +108,12 @@ impl BwManager {
         server_url: String,
         email: String,
         password: String,
+        bw_serve_host: String,
         port: u16,
         external: bool,
     ) -> Self {
         Self {
-            client: BwClient::new(port),
+            client: BwClient::new(&bw_serve_host, port),
             child: Arc::new(RwLock::new(None)),
             server_url,
             email,
