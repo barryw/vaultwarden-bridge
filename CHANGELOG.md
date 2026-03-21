@@ -10,6 +10,19 @@ All notable changes to this project will be documented in this file. See [conven
 - HTMX 2.0.4 (1.10.0 doesn't exist), add inline SVG favicon - (7f7ea8f) - Barry Walker
 - typeahead uses input event instead of flaky keyup changed trigger - (50617f4) - Barry Walker
 - show friendly error for duplicate key names instead of raw DB error - (8cccecc) - Barry Walker
+#### Miscellaneous
+- (**version**) v0.1.1 - (72ddc9a) - Woodpecker CI
+
+- - -
+
+## v0.1.1 - 2026-03-21
+#### Bug Fixes
+- bump pipeline fetches origin and checks out with tracking - (9e8eca1) - Barry Walker
+- bump pipeline pushes to origin main with tracking branch set - (78d225b) - Barry Walker
+- suggestions dropdown overlays instead of pushing content (position: absolute) - (5f6efd4) - Barry Walker
+- HTMX 2.0.4 (1.10.0 doesn't exist), add inline SVG favicon - (7f7ea8f) - Barry Walker
+- typeahead uses input event instead of flaky keyup changed trigger - (50617f4) - Barry Walker
+- show friendly error for duplicate key names instead of raw DB error - (8cccecc) - Barry Walker
 
 - - -
 
