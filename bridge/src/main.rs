@@ -20,10 +20,13 @@ async fn main() -> anyhow::Result<()> {
 
     let app = vaultwarden_bridge::app(pool, config).await?;
 
+    // Strip trailing slashes before routing (e.g. /ui/ -> /ui)
+    let app = app.layer(vaultwarden_bridge::NormalizePathLayer::trim_trailing_slash());
+
     let addr = SocketAddr::from(([0, 0, 0, 0], listen_port));
     tracing::info!(%addr, "listening");
     let listener = TcpListener::bind(addr).await?;
-    axum::serve(listener, app).await?;
+    axum::serve(listener, app.into_make_service()).await?;
 
     Ok(())
 }
