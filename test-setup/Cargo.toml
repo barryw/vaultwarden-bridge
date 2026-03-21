@@ -1,0 +1,14 @@
+[package]
+name = "vwb-test-setup"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "vwb-test-setup"
+path = "src/main.rs"
+
+[dependencies]
+vaultwarden-bridge = { path = "../bridge" }
+tokio = { version = "1", features = ["full"] }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres"] }

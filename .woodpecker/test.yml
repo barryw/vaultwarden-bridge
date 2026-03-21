@@ -93,8 +93,17 @@ steps:
           sleep 1
         done
         echo "==> Bridge is ready"
+
+        echo "==> Creating vwb test key..."
+        export VWB_TEST_TOKEN=$(./target/release/vwb-test-setup)
+        echo "==> VWB test token ready"
+
+        echo "==> Running bridge integration tests..."
         cargo test -p vaultwarden-bridge --test integration -- --test-threads=1
-        EXIT_CODE=$?
+
+        echo "==> Running vwb integration tests..."
+        export TEST_BRIDGE_URL=http://127.0.0.1:9090
+        cargo test -p vwb --test integration -- --test-threads=1
+
         kill $BRIDGE_PID 2>/dev/null || true
-        exit $EXIT_CODE
     depends_on: [seed-vaultwarden]
