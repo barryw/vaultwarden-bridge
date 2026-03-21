@@ -10,11 +10,11 @@ use tower_governor::governor::GovernorConfigBuilder;
 use crate::state::AppState;
 
 pub fn router(state: AppState) -> Router {
-    // Rate limit: 30 requests per second per IP on secret retrieval
+    // Rate limit: 60 request burst, refilling at 30/s per IP
     let governor_config = Arc::new(
         GovernorConfigBuilder::default()
             .per_second(30)
-            .burst_size(10)
+            .burst_size(60)
             .finish()
             .expect("governor config"),
     );
