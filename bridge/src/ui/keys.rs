@@ -64,11 +64,16 @@ pub async fn create(
             let keys = db::machine_keys::list(&state.pool)
                 .await
                 .unwrap_or_default();
+            let msg = if e.to_string().contains("unique constraint") {
+                format!("A key named \"{}\" already exists", form.name)
+            } else {
+                format!("Failed to create key: {}", e)
+            };
             KeysTemplate {
                 active_nav: "keys",
                 version: env!("CARGO_PKG_VERSION"),
                 keys,
-                flash_message: Some(format!("Error: {}", e)),
+                flash_message: Some(msg),
                 new_api_key: None,
             }
         }
