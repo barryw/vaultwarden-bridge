@@ -24,23 +24,13 @@ services:
       I_REALLY_WANT_VOLATILE_STORAGE: "true"
 
 steps:
-  - name: lint
+  - name: lint-test-build
     image: rust:1.94.0-bookworm
     commands:
       - cargo fmt --all -- --check
       - cargo clippy --workspace -- -D warnings
-
-  - name: unit-test
-    image: rust:1.94.0-bookworm
-    commands:
       - cargo test --workspace --lib
-    depends_on: [lint]
-
-  - name: build
-    image: rust:1.94.0-bookworm
-    commands:
       - cargo build --workspace --release
-    depends_on: [unit-test]
 
   - name: seed-vaultwarden
     image: node:18-bookworm-slim
@@ -70,7 +60,7 @@ steps:
         done
         echo "==> Postgres is ready"
       - node scripts/register-vaultwarden.js
-    depends_on: [build]
+    depends_on: [lint-test-build]
 
   - name: integration-test
     image: rust:1.94.0-bookworm
