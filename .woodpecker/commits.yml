@@ -1,0 +1,18 @@
+when:
+  - event: push
+
+labels:
+  platform: linux/amd64
+
+clone:
+  git:
+    image: woodpeckerci/plugin-git
+    settings:
+      tags: true
+
+steps:
+  - name: validate-commits
+    image: ghcr.io/cocogitto/cog:latest
+    commands:
+      - cog check
+      - echo "All commits follow conventional commit format"

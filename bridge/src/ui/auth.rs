@@ -18,6 +18,7 @@ type HmacSha256 = Hmac<Sha256>;
 #[derive(Template, WebTemplate)]
 #[template(path = "login.html")]
 pub struct LoginTemplate {
+    pub version: &'static str,
     pub error: Option<String>,
 }
 
@@ -49,7 +50,10 @@ fn set_session_cookie(token: &str) -> String {
 }
 
 pub async fn login_page() -> LoginTemplate {
-    LoginTemplate { error: None }
+    LoginTemplate {
+        version: env!("CARGO_PKG_VERSION"),
+        error: None,
+    }
 }
 
 pub async fn login(
@@ -79,6 +83,7 @@ pub async fn login(
             .into_response()
     } else {
         LoginTemplate {
+            version: env!("CARGO_PKG_VERSION"),
             error: Some("Invalid credentials".to_string()),
         }
         .into_response()

@@ -33,10 +33,12 @@
         }
         .logo h1 {
             font-size: 1.35rem; font-weight: 700; color: #0f172a;
+            line-height: 1.2;
         }
         .subtitle {
-            color: #64748b; font-size: 0.85rem; margin-bottom: 2rem;
+            color: #64748b; font-size: 0.8rem; margin-top: 0.1rem;
         }
+        .logo { margin-bottom: 2rem; }
         .form-group { margin-bottom: 1.25rem; }
         .form-group label {
             display: block; margin-bottom: 0.4rem;
@@ -84,9 +86,11 @@
     <div class="login-card">
         <div class="logo">
             <div class="logo-icon">VB</div>
-            <h1>Vaultwarden Bridge</h1>
+            <div>
+                <h1>Vaultwarden Bridge</h1>
+                <p class="subtitle">Machine secret management</p>
+            </div>
         </div>
-        <p class="subtitle">Machine secret management</p>
         {% if let Some(err) = error %}
         <div class="error">{{ err }}</div>
         {% endif %}
@@ -102,6 +106,6 @@
             <button type="submit">Sign in</button>
         </form>
     </div>
-    <div class="footer">Vaultwarden Bridge v0.1.0</div>
+    <div class="footer">Vaultwarden Bridge v{{ version }}</div>
 </body>
 </html>

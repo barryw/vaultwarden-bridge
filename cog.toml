@@ -1,0 +1,37 @@
+from_latest_tag = true
+ignore_merge_commits = true
+branch_whitelist = ["main"]
+tag_prefix = "v"
+skip_ci = "[skip ci]"
+skip_untracked = false
+
+pre_bump_hooks = []
+post_bump_hooks = []
+
+[changelog]
+path = "CHANGELOG.md"
+authors = [
+    { signature = "Claude Opus 4.6", username = "claude" }
+]
+
+[commit_types]
+feat = { changelog_title = "Features" }
+fix = { changelog_title = "Bug Fixes" }
+docs = { changelog_title = "Documentation" }
+refactor = { changelog_title = "Refactoring" }
+test = { changelog_title = "Tests" }
+chore = { changelog_title = "Miscellaneous" }
+perf = { changelog_title = "Performance" }
+ci = { changelog_title = "CI/CD" }
+security = { changelog_title = "Security" }
+style = { changelog_title = "Styling" }
+
+[packages.bridge]
+path = "bridge"
+changelog_path = "CHANGELOG.md"
+public_api = false
+
+[packages.vwb]
+path = "vwb"
+changelog_path = "CHANGELOG.md"
+public_api = false

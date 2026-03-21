@@ -15,6 +15,7 @@ use crate::state::AppState;
 #[template(path = "cidrs.html")]
 pub struct CidrsTemplate {
     pub active_nav: &'static str,
+    pub version: &'static str,
     pub ui_rules: Vec<db::cidr_rules::CidrRule>,
     pub api_rules: Vec<db::cidr_rules::CidrRule>,
 }
@@ -34,6 +35,7 @@ pub async fn list(State(state): State<AppState>) -> CidrsTemplate {
         .unwrap_or_default();
     CidrsTemplate {
         active_nav: "cidrs",
+        version: env!("CARGO_PKG_VERSION"),
         ui_rules,
         api_rules,
     }

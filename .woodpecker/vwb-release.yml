@@ -5,14 +5,17 @@ when:
 labels:
   platform: linux/amd64
 
+clone:
+  git:
+    image: woodpeckerci/plugin-git
+    settings:
+      tags: true
+
 steps:
   - name: build
     image: rust:1.94.0-bookworm
     commands:
       - |
-        VERSION="${CI_COMMIT_TAG#v}"
-        echo "Building vwb $VERSION for linux-amd64..."
-
         apt-get update && apt-get install -y gcc-aarch64-linux-gnu > /dev/null 2>&1
         rustup target add x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu
 
@@ -25,27 +28,31 @@ steps:
           cargo build --release -p vwb --target aarch64-unknown-linux-gnu
         cp target/aarch64-unknown-linux-gnu/release/vwb vwb-linux-arm64
 
-        # Checksums
         sha256sum vwb-linux-* > SHA256SUMS
         cat SHA256SUMS
 
   - name: release
-    image: alpine:latest
+    image: ghcr.io/cocogitto/cog:latest
     environment:
       GITHUB_TOKEN:
         from_secret: github_token
     commands:
       - |
-        apk add --no-cache github-cli
+        apk add --no-cache github-cli > /dev/null 2>&1
+        git config --global --add safe.directory "$CI_WORKSPACE"
 
-        VERSION="${CI_COMMIT_TAG#v}"
-        echo "Creating release $CI_COMMIT_TAG..."
+        TAG=$(git describe --tags --abbrev=0)
+        RELEASE_NOTES=$(cog changelog --at "$TAG" 2>/dev/null || echo "Release $TAG")
 
-        gh release create "$CI_COMMIT_TAG" \
-          --repo barryw/vaultwarden-bridge \
-          --title "vwb $VERSION" \
-          --generate-notes \
+        gh release create "$TAG" \
+          --repo "$CI_REPO" \
+          --title "vaultwarden-bridge $TAG" \
+          --notes "$RELEASE_NOTES" \
+          2>/dev/null || echo "Release already exists"
+
+        gh release upload "$TAG" \
           vwb-linux-amd64 \
           vwb-linux-arm64 \
-          SHA256SUMS
+          SHA256SUMS \
+          --repo "$CI_REPO" --clobber
     depends_on: [build]

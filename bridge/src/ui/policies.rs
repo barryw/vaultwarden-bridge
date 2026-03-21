@@ -15,6 +15,7 @@ use crate::state::AppState;
 #[template(path = "policies.html")]
 pub struct PoliciesTemplate {
     pub active_nav: &'static str,
+    pub version: &'static str,
     pub key_id: Uuid,
     pub key_name: String,
     pub policies: Vec<db::access_policies::AccessPolicy>,
@@ -37,6 +38,7 @@ pub async fn list(State(state): State<AppState>, Path(id): Path<Uuid>) -> Polici
         .unwrap_or_default();
     PoliciesTemplate {
         active_nav: "keys",
+        version: env!("CARGO_PKG_VERSION"),
         key_id: id,
         key_name,
         policies,

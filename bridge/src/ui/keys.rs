@@ -15,6 +15,7 @@ use crate::state::AppState;
 #[template(path = "keys.html")]
 pub struct KeysTemplate {
     pub active_nav: &'static str,
+    pub version: &'static str,
     pub keys: Vec<db::machine_keys::MachineKey>,
     pub flash_message: Option<String>,
     pub new_api_key: Option<String>,
@@ -31,6 +32,7 @@ pub async fn list(State(state): State<AppState>) -> KeysTemplate {
         .unwrap_or_default();
     KeysTemplate {
         active_nav: "keys",
+        version: env!("CARGO_PKG_VERSION"),
         keys,
         flash_message: None,
         new_api_key: None,
@@ -52,6 +54,7 @@ pub async fn create(
                 .unwrap_or_default();
             KeysTemplate {
                 active_nav: "keys",
+                version: env!("CARGO_PKG_VERSION"),
                 keys,
                 flash_message: None,
                 new_api_key: Some(raw_key),
@@ -63,6 +66,7 @@ pub async fn create(
                 .unwrap_or_default();
             KeysTemplate {
                 active_nav: "keys",
+                version: env!("CARGO_PKG_VERSION"),
                 keys,
                 flash_message: Some(format!("Error: {}", e)),
                 new_api_key: None,

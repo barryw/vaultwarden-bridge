@@ -9,6 +9,7 @@ use crate::state::AppState;
 #[template(path = "audit.html")]
 pub struct AuditTemplate {
     pub active_nav: &'static str,
+    pub version: &'static str,
     pub entries: Vec<db::audit::AuditEntry>,
 }
 
@@ -18,6 +19,7 @@ pub async fn list(State(state): State<AppState>) -> AuditTemplate {
         .unwrap_or_default();
     AuditTemplate {
         active_nav: "audit",
+        version: env!("CARGO_PKG_VERSION"),
         entries,
     }
 }
