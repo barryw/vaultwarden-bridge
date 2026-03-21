@@ -54,7 +54,7 @@ pub async fn app(pool: PgPool, config: Config) -> anyhow::Result<Router> {
     );
 
     let app = Router::new()
-        .route("/", get(|| async { Redirect::permanent("/ui/") }))
+        .route("/", get(|| async { Redirect::permanent("/ui") }))
         .nest("/api", api_routes)
         .nest("/ui", ui_routes);
 

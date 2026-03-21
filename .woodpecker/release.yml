@@ -54,7 +54,7 @@ steps:
           -n vaultwarden-bridge
 
         kubectl rollout status deployment/vaultwarden-bridge \
-          -n vaultwarden-bridge --timeout=120s
+          -n vaultwarden-bridge --timeout=300s
     backend_options:
       kubernetes:
         serviceAccountName: woodpecker-agent
