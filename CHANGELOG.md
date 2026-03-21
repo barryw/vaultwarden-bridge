@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.2.0 - 2026-03-21
+#### Features
+- multi-type secret support - (9f2bad0) - Barry Walker, *Claude Opus 4.6 (1M context)*
+#### Styling
+- fix rustfmt formatting - (89e117a) - Barry Walker, *Claude Opus 4.6 (1M context)*
+
+- - -
+
 ## v0.1.1 - 2026-03-21
 #### Bug Fixes
 - push tags explicitly (--follow-tags skips lightweight tags from cog) - (94c23ce) - Barry Walker
