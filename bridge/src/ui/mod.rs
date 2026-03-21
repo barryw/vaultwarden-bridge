@@ -4,6 +4,7 @@ pub mod cidrs;
 pub mod dashboard;
 pub mod keys;
 pub mod policies;
+pub mod vault_search;
 
 use crate::state::AppState;
 use axum::{Router, routing::get};
@@ -24,6 +25,7 @@ pub fn router(state: AppState, _admin_username: &str, _admin_password: &str) -> 
             "/keys/{id}/policies/{policy_id}/delete",
             get(policies::delete),
         )
+        .route("/api/vault-items", get(vault_search::search))
         .route("/audit", get(audit_view::list))
         .route("/cidrs", get(cidrs::list).post(cidrs::create))
         .route("/cidrs/{id}/delete", get(cidrs::delete))

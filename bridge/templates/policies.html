@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Policies — Vaultwarden Bridge{% endblock %}
 {% block content %}
+<style>
+    .typeahead-wrap { position: relative; flex: 1; }
+    .typeahead-wrap .suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-top: none; border-radius: 0 0 4px 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); z-index: 10; max-height: 200px; overflow-y: auto; }
+    .typeahead-wrap .suggestion { padding: 0.5rem; cursor: pointer; font-family: monospace; font-size: 0.9rem; }
+    .typeahead-wrap .suggestion:hover { background: #e0e7ff; }
+</style>
+
 <h1>Access Policies for "{{ key_name }}"</h1>
 <p><a href="/ui/keys">&larr; Back to keys</a></p>
 
@@ -9,15 +16,24 @@
     <form method="POST" action="/ui/keys/{{ key_id }}/policies" style="display:flex;gap:0.5rem;align-items:end;">
         <div class="form-group" style="margin-bottom:0;">
             <label>Type</label>
-            <select name="target_type">
+            <select name="target_type" id="target-type">
                 <option value="item">Item (exact name)</option>
                 <option value="collection">Collection (ID)</option>
                 <option value="glob">Glob pattern</option>
             </select>
         </div>
-        <div class="form-group" style="flex:1;margin-bottom:0;">
+        <div class="form-group typeahead-wrap" style="margin-bottom:0;">
             <label>Value</label>
-            <input type="text" name="target_value" required placeholder="e.g. prod/db/* or collection-uuid" style="width:100%;">
+            <input type="text" name="target_value" id="target-value" required
+                   placeholder="Start typing to search vault items..."
+                   style="width:100%;"
+                   autocomplete="off"
+                   hx-get="/ui/api/vault-items"
+                   hx-trigger="keyup changed delay:200ms"
+                   hx-target="#suggestions"
+                   hx-params="none"
+                   hx-vals="js:{q: document.getElementById('target-value').value}">
+            <div id="suggestions"></div>
         </div>
         <button type="submit" class="btn btn-primary">Add</button>
     </form>
@@ -46,4 +62,20 @@
         </tbody>
     </table>
 </div>
+
+<script>
+function selectSuggestion(el) {
+    var input = document.getElementById('target-value');
+    input.value = el.dataset.value;
+    var container = document.getElementById('suggestions');
+    while (container.firstChild) container.removeChild(container.firstChild);
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.typeahead-wrap')) {
+        var container = document.getElementById('suggestions');
+        while (container.firstChild) container.removeChild(container.firstChild);
+    }
+});
+</script>
 {% endblock %}
