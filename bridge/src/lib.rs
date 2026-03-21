@@ -15,7 +15,6 @@ use axum::response::Redirect;
 use axum::routing::get;
 use sqlx::PgPool;
 use std::sync::Arc;
-pub use tower_http::normalize_path::NormalizePathLayer;
 
 use crate::bw::BwManager;
 use crate::config::Config;

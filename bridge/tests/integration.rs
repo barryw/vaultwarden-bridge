@@ -235,3 +235,46 @@ async fn test_user_agent_captured_in_audit() {
         Some("terraform-provider-vaultwarden-bridge/0.1.0")
     );
 }
+
+// --- Trailing slash normalization ---
+
+#[tokio::test]
+async fn test_root_redirects_to_ui() {
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap();
+    let resp = client
+        .get(format!("{}/", bridge_url()))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::PERMANENT_REDIRECT);
+    let location = resp.headers().get("location").unwrap().to_str().unwrap();
+    assert_eq!(location, "/ui");
+}
+
+#[tokio::test]
+async fn test_ui_trailing_slash_works() {
+    let resp = reqwest::get(format!("{}/ui/", bridge_url())).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body = resp.text().await.unwrap();
+    assert!(body.contains("Dashboard"));
+}
+
+#[tokio::test]
+async fn test_api_health_trailing_slash_works() {
+    let resp = reqwest::get(format!("{}/api/v1/health/", bridge_url()))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_ui_keys_trailing_slash_works() {
+    let resp = reqwest::get(format!("{}/ui/keys/", bridge_url()))
+        .await
+        .unwrap();
+    // May be 200 or redirect to login - just not 404
+    assert_ne!(resp.status(), StatusCode::NOT_FOUND);
+}

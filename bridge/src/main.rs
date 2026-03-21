@@ -1,5 +1,8 @@
+use axum::ServiceExt;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
+use tower::ServiceBuilder;
+use tower_http::normalize_path::NormalizePathLayer;
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -18,15 +21,22 @@ async fn main() -> anyhow::Result<()> {
     let pool = sqlx::PgPool::connect(&config.database_url).await?;
     sqlx::migrate!("./migrations").run(&pool).await?;
 
-    let app = vaultwarden_bridge::app(pool, config).await?;
+    let router = vaultwarden_bridge::app(pool, config).await?;
 
-    // Strip trailing slashes before routing (e.g. /ui/ -> /ui)
-    let app = app.layer(vaultwarden_bridge::NormalizePathLayer::trim_trailing_slash());
+    // NormalizePathLayer MUST wrap the router as a tower Service (not via .layer())
+    // so it modifies the request URI BEFORE Axum routing occurs.
+    let app = ServiceBuilder::new()
+        .layer(NormalizePathLayer::trim_trailing_slash())
+        .service(router);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], listen_port));
     tracing::info!(%addr, "listening");
     let listener = TcpListener::bind(addr).await?;
-    axum::serve(listener, app.into_make_service()).await?;
+    axum::serve(
+        listener,
+        ServiceExt::<axum::extract::Request>::into_make_service(app),
+    )
+    .await?;
 
     Ok(())
 }
