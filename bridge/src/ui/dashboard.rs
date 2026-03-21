@@ -8,6 +8,7 @@ use crate::state::AppState;
 #[derive(Template, WebTemplate)]
 #[template(path = "dashboard.html")]
 pub struct DashboardTemplate {
+    pub active_nav: &'static str,
     pub key_count: usize,
     pub enabled_count: usize,
     pub bw_healthy: bool,
@@ -26,6 +27,7 @@ pub async fn dashboard(State(state): State<AppState>) -> DashboardTemplate {
     let bw_healthy = state.bw.is_healthy().await;
 
     DashboardTemplate {
+        active_nav: "dashboard",
         key_count: keys.len(),
         enabled_count,
         bw_healthy,

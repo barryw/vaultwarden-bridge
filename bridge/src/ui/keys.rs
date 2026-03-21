@@ -14,6 +14,7 @@ use crate::state::AppState;
 #[derive(Template, WebTemplate)]
 #[template(path = "keys.html")]
 pub struct KeysTemplate {
+    pub active_nav: &'static str,
     pub keys: Vec<db::machine_keys::MachineKey>,
     pub flash_message: Option<String>,
     pub new_api_key: Option<String>,
@@ -29,6 +30,7 @@ pub async fn list(State(state): State<AppState>) -> KeysTemplate {
         .await
         .unwrap_or_default();
     KeysTemplate {
+        active_nav: "keys",
         keys,
         flash_message: None,
         new_api_key: None,
@@ -48,6 +50,7 @@ pub async fn create(
                 .await
                 .unwrap_or_default();
             KeysTemplate {
+                active_nav: "keys",
                 keys,
                 flash_message: None,
                 new_api_key: Some(raw_key),
@@ -58,6 +61,7 @@ pub async fn create(
                 .await
                 .unwrap_or_default();
             KeysTemplate {
+                active_nav: "keys",
                 keys,
                 flash_message: Some(format!("Error: {}", e)),
                 new_api_key: None,

@@ -8,6 +8,7 @@ use crate::state::AppState;
 #[derive(Template, WebTemplate)]
 #[template(path = "audit.html")]
 pub struct AuditTemplate {
+    pub active_nav: &'static str,
     pub entries: Vec<db::audit::AuditEntry>,
 }
 
@@ -15,5 +16,8 @@ pub async fn list(State(state): State<AppState>) -> AuditTemplate {
     let entries = db::audit::list_recent(&state.pool, 100)
         .await
         .unwrap_or_default();
-    AuditTemplate { entries }
+    AuditTemplate {
+        active_nav: "audit",
+        entries,
+    }
 }
