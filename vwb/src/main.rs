@@ -20,7 +20,10 @@ enum VwbError {
 impl std::fmt::Display for VwbError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            VwbError::Usage => write!(f, "Usage: vwb get <key> [field]\n\nExamples:\n  vwb get prod/db/creds              # login: returns password\n  vwb get prod/db/creds login.username\n  vwb get corp/amex card.number\n  vwb get ops/runbook notes"),
+            VwbError::Usage => write!(
+                f,
+                "Usage: vwb get <key> [field]\n\nExamples:\n  vwb get prod/db/creds              # login: returns password\n  vwb get prod/db/creds login.username\n  vwb get corp/amex card.number\n  vwb get ops/runbook notes"
+            ),
             VwbError::MissingAddr => write!(f, "VWB_ADDR environment variable is not set"),
             VwbError::MissingToken => write!(f, "VWB_TOKEN environment variable is not set"),
             VwbError::Request(e) => write!(f, "{}", e),
@@ -75,9 +78,8 @@ fn fetch(addr: &str, token: &str, key: &str, field: Option<&str>) -> Result<Stri
 
         if let Some(field) = field {
             // Explicit field requested: resolve the path
-            let val = resolve_field(&body, field).ok_or_else(|| {
-                VwbError::Api(format!("field '{}' not found in response", field))
-            })?;
+            let val = resolve_field(&body, field)
+                .ok_or_else(|| VwbError::Api(format!("field '{}' not found in response", field)))?;
             return Ok(match val.as_str() {
                 Some(s) => s.to_string(),
                 None => val.to_string(),
@@ -90,8 +92,7 @@ fn fetch(addr: &str, token: &str, key: &str, field: Option<&str>) -> Result<Stri
                 .as_str()
                 .unwrap_or_default()
                 .to_string(),
-            _ => serde_json::to_string_pretty(&body)
-                .unwrap_or_default(),
+            _ => serde_json::to_string_pretty(&body).unwrap_or_default(),
         };
 
         Ok(value)

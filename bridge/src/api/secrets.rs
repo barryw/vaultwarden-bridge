@@ -157,11 +157,7 @@ pub async fn get_secret(
                 let uris: Vec<&str> = login
                     .uris
                     .as_ref()
-                    .map(|u| {
-                        u.iter()
-                            .filter_map(|uri| uri.uri.as_deref())
-                            .collect()
-                    })
+                    .map(|u| u.iter().filter_map(|uri| uri.uri.as_deref()).collect())
                     .unwrap_or_default();
 
                 resp["login"] = json!({
