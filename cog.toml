@@ -26,12 +26,3 @@ ci = { changelog_title = "CI/CD" }
 security = { changelog_title = "Security" }
 style = { changelog_title = "Styling" }
 
-[packages.bridge]
-path = "bridge"
-changelog_path = "CHANGELOG.md"
-public_api = false
-
-[packages.vwb]
-path = "vwb"
-changelog_path = "CHANGELOG.md"
-public_api = false
