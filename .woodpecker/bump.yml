@@ -24,8 +24,12 @@ steps:
         from_secret: github_token
     commands:
       - cargo install cocogitto --locked
-      - git config user.name "Woodpecker CI"
-      - git config user.email "ci@barrywalker.io"
-      - git remote set-url origin "https://x-access-token:$GITHUB_TOKEN@github.com/${CI_REPO}.git"
-      - cog bump --auto && git push --follow-tags || echo "No version bump needed"
-      - echo "Current version:" && cog get-version
+      - |
+        git config user.name "Woodpecker CI"
+        git config user.email "ci@barrywalker.io"
+        git remote set-url origin "https://x-access-token:$GITHUB_TOKEN@github.com/${CI_REPO}.git"
+        git checkout main
+        git branch --set-upstream-to=origin/main main
+        cog bump --auto || { echo "No version bump needed"; exit 0; }
+        git push origin main --follow-tags
+        echo "Current version: $(cog get-version)"
