@@ -5,7 +5,12 @@ tag_prefix = "v"
 skip_ci = "[skip ci]"
 skip_untracked = false
 
-pre_bump_hooks = []
+pre_bump_hooks = [
+    "sed -i 's/^version = \".*\"/version = \"{{version}}\"/' bridge/Cargo.toml",
+    "sed -i 's/^version = \".*\"/version = \"{{version}}\"/' vwb/Cargo.toml",
+    "sed -i 's/^version = \".*\"/version = \"{{version}}\"/' test-setup/Cargo.toml",
+    "cargo check --workspace 2>/dev/null || true",
+]
 post_bump_hooks = []
 
 [changelog]
@@ -25,4 +30,3 @@ perf = { changelog_title = "Performance" }
 ci = { changelog_title = "CI/CD" }
 security = { changelog_title = "Security" }
 style = { changelog_title = "Styling" }
-

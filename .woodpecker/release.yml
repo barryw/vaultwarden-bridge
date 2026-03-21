@@ -6,11 +6,38 @@ when:
 labels:
   platform: linux/amd64
 
+clone:
+  git:
+    image: woodpeckerci/plugin-git
+    settings:
+      tags: true
+      depth: 0
+
 depends_on:
   - test
   - commits
 
 steps:
+  - name: bump
+    image: rust:1.94.0-bookworm
+    environment:
+      GITHUB_TOKEN:
+        from_secret: github_token
+    commands:
+      - |
+        cargo install cocogitto --locked
+        git config user.name "Woodpecker CI"
+        git config user.email "ci@barrywalker.io"
+        git remote set-url origin "https://x-access-token:$GITHUB_TOKEN@github.com/${CI_REPO}.git"
+        git fetch origin main
+        git checkout -B main origin/main
+
+        cog bump --auto --skip-ci || { echo "No version bump needed — using current version"; }
+
+        VERSION=$(cog get-version)
+        echo "Version: $VERSION"
+        echo "$VERSION" > .version
+
   - name: docker-bridge
     image: gcr.io/kaniko-project/executor:debug
     environment:
@@ -20,17 +47,20 @@ steps:
         from_secret: github_token
     commands:
       - |
+        VERSION=$(cat .version)
         SHORT_SHA=$(echo "$CI_COMMIT_SHA" | cut -c1-8)
-        echo "Building bridge image: $SHORT_SHA"
+        echo "Building bridge image: v$VERSION ($SHORT_SHA)"
         mkdir -p /kaniko/.docker
         echo "{\"auths\":{\"ghcr.io\":{\"username\":\"$GHCR_USERNAME\",\"password\":\"$GHCR_TOKEN\"}}}" > /kaniko/.docker/config.json
         /kaniko/executor \
           --context="$CI_WORKSPACE" \
           --dockerfile="$CI_WORKSPACE/Dockerfile" \
+          --destination="ghcr.io/barryw/vaultwarden-bridge:v$VERSION" \
           --destination="ghcr.io/barryw/vaultwarden-bridge:$SHORT_SHA" \
           --destination="ghcr.io/barryw/vaultwarden-bridge:latest" \
           --cache=true \
           --cache-repo="ghcr.io/barryw/vaultwarden-bridge-cache"
+    depends_on: [bump]
 
   - name: docker-bw-serve
     image: gcr.io/kaniko-project/executor:debug
@@ -50,13 +80,14 @@ steps:
           --destination="ghcr.io/barryw/vwb-bw-serve:latest" \
           --cache=true \
           --cache-repo="ghcr.io/barryw/vwb-bw-serve-cache"
+    depends_on: [bump]
 
   - name: deploy
     image: bitnami/kubectl:latest
     commands:
       - |
-        SHORT_SHA=$(echo "$CI_COMMIT_SHA" | cut -c1-8)
-        echo "Deploying vaultwarden-bridge:$SHORT_SHA"
+        VERSION=$(cat .version)
+        echo "Deploying vaultwarden-bridge:v$VERSION"
 
         kubectl apply -f k8s/namespace.yaml
         kubectl apply -f k8s/bw-appdata-configmap.yaml
@@ -66,7 +97,7 @@ steps:
         kubectl apply -f k8s/deployment.yaml
 
         kubectl set image deployment/vaultwarden-bridge \
-          vaultwarden-bridge=ghcr.io/barryw/vaultwarden-bridge:$SHORT_SHA \
+          vaultwarden-bridge=ghcr.io/barryw/vaultwarden-bridge:v$VERSION \
           -n vaultwarden-bridge
 
         kubectl rollout status deployment/vaultwarden-bridge \
@@ -75,3 +106,16 @@ steps:
       kubernetes:
         serviceAccountName: woodpecker-agent
     depends_on: [docker-bridge, docker-bw-serve]
+
+  - name: push-version
+    image: rust:1.94.0-bookworm
+    environment:
+      GITHUB_TOKEN:
+        from_secret: github_token
+    commands:
+      - |
+        git config user.name "Woodpecker CI"
+        git config user.email "ci@barrywalker.io"
+        git remote set-url origin "https://x-access-token:$GITHUB_TOKEN@github.com/${CI_REPO}.git"
+        git push -u origin main --follow-tags || echo "Nothing to push"
+    depends_on: [deploy]
