@@ -6,14 +6,14 @@
 <div class="card">
     <h2>Add Rule</h2>
     <form method="POST" action="/ui/cidrs" style="display:flex;gap:0.5rem;align-items:end;">
-        <div class="form-group">
+        <div class="form-group" style="margin-bottom:0;">
             <label>Scope</label>
             <select name="scope">
                 <option value="ui">Web UI</option>
                 <option value="api">API</option>
             </select>
         </div>
-        <div class="form-group" style="flex:1;">
+        <div class="form-group" style="flex:1;margin-bottom:0;">
             <label>CIDR</label>
             <input type="text" name="cidr" required placeholder="e.g. 10.0.0.0/8" style="width:100%;">
         </div>
