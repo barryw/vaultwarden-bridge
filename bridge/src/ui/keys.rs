@@ -43,8 +43,9 @@ pub async fn create(
 ) -> KeysTemplate {
     let raw_key = auth::generate_api_key();
     let hash = auth::hash_api_key(&raw_key).unwrap();
+    let prefix = auth::key_prefix(&raw_key);
 
-    match db::machine_keys::create(&state.pool, &form.name, &hash).await {
+    match db::machine_keys::create(&state.pool, &form.name, &hash, &prefix).await {
         Ok(_) => {
             let keys = db::machine_keys::list(&state.pool)
                 .await

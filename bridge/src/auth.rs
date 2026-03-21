@@ -10,6 +10,12 @@ pub fn generate_api_key() -> String {
     base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
 }
 
+/// Extract the first 8 characters of an API key as a fast-lookup prefix.
+/// Used to avoid O(n) Argon2 verification across all keys.
+pub fn key_prefix(key: &str) -> String {
+    key.chars().take(8).collect()
+}
+
 pub fn hash_api_key(key: &str) -> Result<String, argon2::password_hash::Error> {
     let salt = SaltString::generate(&mut OsRng);
     let hash = Argon2::default().hash_password(key.as_bytes(), &salt)?;

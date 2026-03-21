@@ -28,8 +28,9 @@ async fn create_test_key(prefix: &str) -> (String, u32) {
     let name = format!("{}-{}", prefix, n);
     let raw_key = vaultwarden_bridge::auth::generate_api_key();
     let hash = vaultwarden_bridge::auth::hash_api_key(&raw_key).unwrap();
+    let key_prefix = vaultwarden_bridge::auth::key_prefix(&raw_key);
     let pool = pool().await;
-    vaultwarden_bridge::db::machine_keys::create(&pool, &name, &hash)
+    vaultwarden_bridge::db::machine_keys::create(&pool, &name, &hash, &key_prefix)
         .await
         .expect("create machine key");
     (raw_key, n)

@@ -39,11 +39,12 @@ pub async fn get_secret(
     let source_ip = addr.ip().to_string();
     let client_version = extract_client_version(&headers);
 
-    // Authenticate
+    // Authenticate — use key prefix for O(1) DB lookup, then single Argon2 verify
     let bearer = extract_bearer(&headers).ok_or(AppError::Unauthorized)?;
+    let prefix = auth::key_prefix(bearer);
 
-    let all_keys = db::machine_keys::find_all_enabled(&state.pool).await?;
-    let machine_key = all_keys
+    let candidates = db::machine_keys::find_enabled_by_prefix(&state.pool, &prefix).await?;
+    let machine_key = candidates
         .iter()
         .find(|k| auth::verify_api_key(bearer, &k.key_hash).unwrap_or(false));
 

@@ -7,18 +7,25 @@ pub struct MachineKey {
     pub id: Uuid,
     pub name: String,
     pub key_hash: String,
+    pub key_prefix: Option<String>,
     pub expires_at: Option<DateTime<Utc>>,
     pub enabled: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
-pub async fn create(pool: &PgPool, name: &str, key_hash: &str) -> Result<MachineKey, sqlx::Error> {
+pub async fn create(
+    pool: &PgPool,
+    name: &str,
+    key_hash: &str,
+    key_prefix: &str,
+) -> Result<MachineKey, sqlx::Error> {
     sqlx::query_as::<_, MachineKey>(
-        "INSERT INTO machine_keys (name, key_hash) VALUES ($1, $2) RETURNING *",
+        "INSERT INTO machine_keys (name, key_hash, key_prefix) VALUES ($1, $2, $3) RETURNING *",
     )
     .bind(name)
     .bind(key_hash)
+    .bind(key_prefix)
     .fetch_one(pool)
     .await
 }
@@ -40,6 +47,19 @@ pub async fn find_all_enabled(pool: &PgPool) -> Result<Vec<MachineKey>, sqlx::Er
     sqlx::query_as::<_, MachineKey>(
         "SELECT * FROM machine_keys WHERE enabled = true AND (expires_at IS NULL OR expires_at > now())",
     )
+    .fetch_all(pool)
+    .await
+}
+
+/// Find enabled keys matching a prefix for O(1) lookup instead of O(n) Argon2 scan.
+pub async fn find_enabled_by_prefix(
+    pool: &PgPool,
+    prefix: &str,
+) -> Result<Vec<MachineKey>, sqlx::Error> {
+    sqlx::query_as::<_, MachineKey>(
+        "SELECT * FROM machine_keys WHERE key_prefix = $1 AND enabled = true AND (expires_at IS NULL OR expires_at > now())",
+    )
+    .bind(prefix)
     .fetch_all(pool)
     .await
 }

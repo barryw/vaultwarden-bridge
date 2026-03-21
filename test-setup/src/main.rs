@@ -14,8 +14,9 @@ async fn main() {
 
     let raw_key = auth::generate_api_key();
     let hash = auth::hash_api_key(&raw_key).expect("hash api key");
+    let prefix = auth::key_prefix(&raw_key);
 
-    let key = machine_keys::create(&pool, "vwb-integration-test", &hash)
+    let key = machine_keys::create(&pool, "vwb-integration-test", &hash, &prefix)
         .await
         .expect("create machine key");
 
