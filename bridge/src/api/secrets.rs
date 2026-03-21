@@ -1,6 +1,8 @@
+use std::net::SocketAddr;
+
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{ConnectInfo, Path, State},
     http::HeaderMap,
 };
 use serde_json::{Value, json};
@@ -27,22 +29,14 @@ fn extract_client_version(headers: &HeaderMap) -> Option<String> {
         .map(|s| s.to_string())
 }
 
-fn extract_source_ip(headers: &HeaderMap, fallback: &str) -> String {
-    headers
-        .get("x-forwarded-for")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|s| s.split(',').next())
-        .map(|s| s.trim().to_string())
-        .unwrap_or_else(|| fallback.to_string())
-}
-
 pub async fn get_secret(
     State(state): State<AppState>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     headers: HeaderMap,
     Path(raw_key): Path<String>,
 ) -> Result<Json<Value>, AppError> {
     let key = raw_key.trim_start_matches('/').to_string();
-    let source_ip = extract_source_ip(&headers, "unknown");
+    let source_ip = addr.ip().to_string();
     let client_version = extract_client_version(&headers);
 
     // Authenticate
