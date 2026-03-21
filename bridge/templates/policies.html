@@ -3,9 +3,10 @@
 {% block content %}
 <style>
     .typeahead-wrap { position: relative; flex: 1; }
-    .typeahead-wrap .suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-top: none; border-radius: 0 0 4px 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); z-index: 10; max-height: 200px; overflow-y: auto; }
-    .typeahead-wrap .suggestion { padding: 0.5rem; cursor: pointer; font-family: monospace; font-size: 0.9rem; }
-    .typeahead-wrap .suggestion:hover { background: #e0e7ff; }
+    #suggestions:not(:empty) { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #d1d5db; border-top: none; border-radius: 0 0 8px 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); z-index: 10; max-height: 200px; overflow-y: auto; }
+    .suggestion { padding: 0.6rem 0.75rem; cursor: pointer; font-family: "SF Mono", "Cascadia Code", monospace; font-size: 0.85rem; border-bottom: 1px solid #f1f5f9; }
+    .suggestion:last-child { border-bottom: none; }
+    .suggestion:hover { background: #e0e7ff; }
 </style>
 
 <h1>Access Policies for "{{ key_name }}"</h1>
