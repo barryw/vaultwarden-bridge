@@ -18,11 +18,12 @@ depends_on:
 
 steps:
   - name: bump-version
-    image: ghcr.io/cocogitto/cog:latest
+    image: rust:1.94.0-bookworm
     environment:
       GITHUB_TOKEN:
         from_secret: github_token
     commands:
+      - cargo install cocogitto --locked
       - git config user.name "Woodpecker CI"
       - git config user.email "ci@barrywalker.io"
       - git remote set-url origin "https://x-access-token:$GITHUB_TOKEN@github.com/${CI_REPO}.git"

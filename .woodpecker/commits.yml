@@ -12,7 +12,8 @@ clone:
 
 steps:
   - name: validate-commits
-    image: ghcr.io/cocogitto/cog:latest
+    image: rust:1.94.0-bookworm
     commands:
+      - cargo install cocogitto --locked
       - cog check
       - echo "All commits follow conventional commit format"
