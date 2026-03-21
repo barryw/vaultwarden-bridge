@@ -150,7 +150,14 @@ impl BwManager {
             .await?;
 
         let login_output = Command::new("bw")
-            .args(["login", &self.email, &self.password, "--raw"])
+            .args([
+                "login",
+                &self.email,
+                "--passwordenv",
+                "BW_PASSWORD",
+                "--raw",
+            ])
+            .env("BW_PASSWORD", &self.password)
             .env("BW_NOINTERACTION", "true")
             .output()
             .await?;
@@ -160,7 +167,8 @@ impl BwManager {
         }
 
         let unlock_output = Command::new("bw")
-            .args(["unlock", &self.password, "--raw"])
+            .args(["unlock", "--passwordenv", "BW_PASSWORD", "--raw"])
+            .env("BW_PASSWORD", &self.password)
             .env("BW_NOINTERACTION", "true")
             .output()
             .await?;
