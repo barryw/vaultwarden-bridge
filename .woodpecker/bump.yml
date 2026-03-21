@@ -1,7 +1,7 @@
 when:
   - event: push
     branch: main
-    evaluate: '!CI_COMMIT_MESSAGE.contains("[skip ci]")'
+    evaluate: 'not (CI_COMMIT_MESSAGE contains "[skip ci]")'
 
 labels:
   platform: linux/amd64
