@@ -31,8 +31,7 @@
                    hx-get="/ui/api/vault-items"
                    hx-trigger="keyup changed delay:200ms"
                    hx-target="#suggestions"
-                   hx-params="none"
-                   hx-vals="js:{q: document.getElementById('target-value').value}">
+                   hx-include="[id='target-value']">
             <div id="suggestions"></div>
         </div>
         <button type="submit" class="btn btn-primary">Add</button>

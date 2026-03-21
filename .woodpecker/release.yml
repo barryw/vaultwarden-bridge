@@ -13,7 +13,7 @@ steps:
       - cargo clippy --workspace -- -D warnings
       - cargo test --workspace --lib
 
-  - name: docker
+  - name: docker-bridge
     image: gcr.io/kaniko-project/executor:debug
     environment:
       GHCR_USERNAME:
@@ -23,7 +23,7 @@ steps:
     commands:
       - |
         SHORT_SHA=$(echo "$CI_COMMIT_SHA" | cut -c1-8)
-        echo "Building Docker image with tag: $SHORT_SHA"
+        echo "Building bridge image: $SHORT_SHA"
         mkdir -p /kaniko/.docker
         echo "{\"auths\":{\"ghcr.io\":{\"username\":\"$GHCR_USERNAME\",\"password\":\"$GHCR_TOKEN\"}}}" > /kaniko/.docker/config.json
         /kaniko/executor \
@@ -33,6 +33,26 @@ steps:
           --destination="ghcr.io/barryw/vaultwarden-bridge:latest" \
           --cache=true \
           --cache-repo="ghcr.io/barryw/vaultwarden-bridge-cache"
+    depends_on: [test]
+
+  - name: docker-bw-serve
+    image: gcr.io/kaniko-project/executor:debug
+    environment:
+      GHCR_USERNAME:
+        from_secret: github_username
+      GHCR_TOKEN:
+        from_secret: github_token
+    commands:
+      - |
+        echo "Building bw-serve sidecar image"
+        mkdir -p /kaniko/.docker
+        echo "{\"auths\":{\"ghcr.io\":{\"username\":\"$GHCR_USERNAME\",\"password\":\"$GHCR_TOKEN\"}}}" > /kaniko/.docker/config.json
+        /kaniko/executor \
+          --context="$CI_WORKSPACE" \
+          --dockerfile="$CI_WORKSPACE/Dockerfile.bw-serve" \
+          --destination="ghcr.io/barryw/vwb-bw-serve:latest" \
+          --cache=true \
+          --cache-repo="ghcr.io/barryw/vwb-bw-serve-cache"
     depends_on: [test]
 
   - name: deploy
@@ -54,8 +74,8 @@ steps:
           -n vaultwarden-bridge
 
         kubectl rollout status deployment/vaultwarden-bridge \
-          -n vaultwarden-bridge --timeout=300s
+          -n vaultwarden-bridge --timeout=180s
     backend_options:
       kubernetes:
         serviceAccountName: woodpecker-agent
-    depends_on: [docker]
+    depends_on: [docker-bridge, docker-bw-serve]

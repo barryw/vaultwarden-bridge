@@ -6,6 +6,7 @@ use crate::state::AppState;
 
 #[derive(Deserialize)]
 pub struct SearchParams {
+    pub target_value: Option<String>,
     pub q: Option<String>,
 }
 
@@ -20,7 +21,7 @@ pub async fn search(
     State(state): State<AppState>,
     Query(params): Query<SearchParams>,
 ) -> Html<String> {
-    let query = params.q.unwrap_or_default();
+    let query = params.target_value.or(params.q).unwrap_or_default();
     if query.is_empty() {
         return Html(String::new());
     }

@@ -109,15 +109,13 @@ spec:
             periodSeconds: 10
 
         - name: bw-serve
-          image: node:20-alpine
+          image: ghcr.io/barryw/vwb-bw-serve:latest
+          imagePullPolicy: Always
           command:
             - /bin/sh
             - -c
             - |
               set -e
-
-              echo "Installing Bitwarden CLI..."
-              npm install -g @bitwarden/cli
 
               echo "Configuring server: $BW_SERVER"
               bw config server "$BW_SERVER"
