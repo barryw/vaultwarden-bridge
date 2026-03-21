@@ -13,6 +13,7 @@ pub mod ui;
 use axum::Router;
 use axum::response::Redirect;
 use axum::routing::get;
+use rand::RngCore;
 use sqlx::PgPool;
 use std::sync::Arc;
 
@@ -41,17 +42,20 @@ pub async fn app(pool: PgPool, config: Config) -> anyhow::Result<Router> {
     ));
     bw.start().await?;
 
+    // Generate a random session secret for HMAC-signed session cookies
+    let mut session_secret = vec![0u8; 32];
+    rand::rng().fill_bytes(&mut session_secret);
+
     let state = AppState {
         pool: pool.clone(),
         bw,
+        session_secret,
+        admin_username: config.admin_username,
+        admin_password: config.admin_password,
     };
 
     let api_routes = api::router(state.clone());
-    let ui_routes = ui::router(
-        state.clone(),
-        &config.admin_username,
-        &config.admin_password,
-    );
+    let ui_routes = ui::router(state.clone());
 
     let app = Router::new()
         .route("/", get(|| async { Redirect::permanent("/ui") }))

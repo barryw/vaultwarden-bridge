@@ -130,7 +130,7 @@ spec:
               bw sync --session "$BW_SESSION"
 
               echo "Starting bw serve on port 8087..."
-              exec bw serve --hostname 0.0.0.0 --port 8087 --session "$BW_SESSION"
+              exec bw serve --hostname 127.0.0.1 --port 8087 --session "$BW_SESSION"
           ports:
             - containerPort: 8087
           env:

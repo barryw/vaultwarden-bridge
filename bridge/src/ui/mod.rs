@@ -6,14 +6,13 @@ pub mod keys;
 pub mod policies;
 pub mod vault_search;
 
-use crate::state::AppState;
-use axum::{Router, routing::get};
+use axum::{Router, middleware, routing::get};
 
-pub fn router(state: AppState, _admin_username: &str, _admin_password: &str) -> Router {
+use crate::state::AppState;
+
+pub fn router(state: AppState) -> Router {
     Router::new()
         .route("/", get(dashboard::dashboard))
-        .route("/login", get(auth::login_page).post(auth::login))
-        .route("/logout", get(auth::logout))
         .route("/keys", get(keys::list).post(keys::create))
         .route("/keys/{id}/toggle", get(keys::toggle))
         .route("/keys/{id}/delete", get(keys::delete))
@@ -29,5 +28,11 @@ pub fn router(state: AppState, _admin_username: &str, _admin_password: &str) -> 
         .route("/audit", get(audit_view::list))
         .route("/cidrs", get(cidrs::list).post(cidrs::create))
         .route("/cidrs/{id}/delete", get(cidrs::delete))
+        .route("/logout", get(auth::logout))
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth::require_session,
+        ))
+        .route("/login", get(auth::login_page).post(auth::login))
         .with_state(state)
 }
