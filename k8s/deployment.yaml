@@ -27,7 +27,7 @@ spec:
           command:
             - /bin/sh
             - -c
-            - cp /bw-appdata-seed/data.json /bw-appdata/data.json
+            - cp /bw-appdata-seed/data.json /bw-appdata/data.json && chown 1000:1000 /bw-appdata/data.json
           volumeMounts:
             - name: bw-appdata-seed
               mountPath: /bw-appdata-seed

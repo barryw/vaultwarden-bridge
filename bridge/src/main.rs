@@ -34,7 +34,9 @@ async fn main() -> anyhow::Result<()> {
     let listener = TcpListener::bind(addr).await?;
     axum::serve(
         listener,
-        ServiceExt::<axum::extract::Request>::into_make_service(app),
+        ServiceExt::<axum::extract::Request>::into_make_service_with_connect_info::<SocketAddr>(
+            app,
+        ),
     )
     .await?;
 
