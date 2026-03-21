@@ -4,11 +4,6 @@ use std::process;
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(serde::Deserialize)]
-struct SecretResponse {
-    value: String,
-}
-
-#[derive(serde::Deserialize)]
 struct ErrorResponse {
     error: String,
 }
@@ -25,7 +20,7 @@ enum VwbError {
 impl std::fmt::Display for VwbError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            VwbError::Usage => write!(f, "Usage: vwb get <key>"),
+            VwbError::Usage => write!(f, "Usage: vwb get <key> [field]\n\nExamples:\n  vwb get prod/db/creds              # login: returns password\n  vwb get prod/db/creds login.username\n  vwb get corp/amex card.number\n  vwb get ops/runbook notes"),
             VwbError::MissingAddr => write!(f, "VWB_ADDR environment variable is not set"),
             VwbError::MissingToken => write!(f, "VWB_TOKEN environment variable is not set"),
             VwbError::Request(e) => write!(f, "{}", e),
@@ -50,7 +45,17 @@ fn build_client() -> Result<reqwest::blocking::Client, VwbError> {
         .map_err(|e| VwbError::Request(e.to_string()))
 }
 
-fn fetch(addr: &str, token: &str, key: &str) -> Result<String, VwbError> {
+/// Resolve a dot-separated field path against a JSON value.
+/// e.g. "login.password" → body["login"]["password"]
+fn resolve_field<'a>(value: &'a serde_json::Value, path: &str) -> Option<&'a serde_json::Value> {
+    let mut current = value;
+    for part in path.split('.') {
+        current = current.get(part)?;
+    }
+    Some(current)
+}
+
+fn fetch(addr: &str, token: &str, key: &str, field: Option<&str>) -> Result<String, VwbError> {
     let url = format!("{}/api/v1/secret/{}", addr.trim_end_matches('/'), key);
 
     let client = build_client()?;
@@ -64,10 +69,32 @@ fn fetch(addr: &str, token: &str, key: &str) -> Result<String, VwbError> {
     let status = resp.status();
 
     if status.is_success() {
-        let body: SecretResponse = resp
+        let body: serde_json::Value = resp
             .json()
             .map_err(|e| VwbError::Api(format!("failed to parse response: {}", e)))?;
-        Ok(body.value)
+
+        if let Some(field) = field {
+            // Explicit field requested: resolve the path
+            let val = resolve_field(&body, field).ok_or_else(|| {
+                VwbError::Api(format!("field '{}' not found in response", field))
+            })?;
+            return Ok(match val.as_str() {
+                Some(s) => s.to_string(),
+                None => val.to_string(),
+            });
+        }
+
+        // No field specified: default to password for logins, full JSON otherwise
+        let value = match body["type"].as_str() {
+            Some("login") => body["login"]["password"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
+            _ => serde_json::to_string_pretty(&body)
+                .unwrap_or_default(),
+        };
+
+        Ok(value)
     } else {
         let msg = resp
             .json::<ErrorResponse>()
@@ -83,10 +110,11 @@ fn run(args: &[String]) -> Result<String, VwbError> {
     }
 
     let key = &args[2];
+    let field = args.get(3).map(|s| s.as_str());
     let addr = env::var("VWB_ADDR").map_err(|_| VwbError::MissingAddr)?;
     let token = env::var("VWB_TOKEN").map_err(|_| VwbError::MissingToken)?;
 
-    fetch(&addr, &token, key)
+    fetch(&addr, &token, key, field)
 }
 
 fn main() {
@@ -127,7 +155,7 @@ mod tests {
 
     #[test]
     fn test_connection_refused() {
-        let err = fetch("http://127.0.0.1:1", "fake", "key").unwrap_err();
+        let err = fetch("http://127.0.0.1:1", "fake", "key", None).unwrap_err();
         assert!(matches!(err, VwbError::Request(_)));
     }
 }

@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::process::{Child, Command};
 use tokio::sync::RwLock;
@@ -16,6 +16,9 @@ pub struct BwItem {
     #[serde(rename = "type")]
     pub item_type: i32,
     pub login: Option<BwLogin>,
+    pub card: Option<BwCard>,
+    pub identity: Option<BwIdentity>,
+    pub fields: Option<Vec<BwField>>,
     pub notes: Option<String>,
     #[serde(rename = "collectionIds")]
     pub collection_ids: Option<Vec<String>>,
@@ -23,11 +26,91 @@ pub struct BwItem {
     pub revision_date: Option<String>,
 }
 
+/// Maps item_type integers to API type strings.
+impl BwItem {
+    pub fn type_name(&self) -> &'static str {
+        match self.item_type {
+            1 => "login",
+            2 => "note",
+            3 => "card",
+            4 => "identity",
+            _ => "unknown",
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct BwLogin {
     pub username: Option<String>,
     pub password: Option<String>,
     pub totp: Option<String>,
+    pub uris: Option<Vec<BwLoginUri>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BwLoginUri {
+    pub uri: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BwCard {
+    #[serde(rename = "cardholderName")]
+    pub cardholder_name: Option<String>,
+    pub brand: Option<String>,
+    pub number: Option<String>,
+    #[serde(rename = "expMonth")]
+    pub exp_month: Option<String>,
+    #[serde(rename = "expYear")]
+    pub exp_year: Option<String>,
+    pub code: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BwIdentity {
+    pub title: Option<String>,
+    #[serde(rename = "firstName")]
+    pub first_name: Option<String>,
+    #[serde(rename = "middleName")]
+    pub middle_name: Option<String>,
+    #[serde(rename = "lastName")]
+    pub last_name: Option<String>,
+    pub address1: Option<String>,
+    pub address2: Option<String>,
+    pub address3: Option<String>,
+    pub city: Option<String>,
+    pub state: Option<String>,
+    #[serde(rename = "postalCode")]
+    pub postal_code: Option<String>,
+    pub country: Option<String>,
+    pub company: Option<String>,
+    pub email: Option<String>,
+    pub phone: Option<String>,
+    pub ssn: Option<String>,
+    pub username: Option<String>,
+    #[serde(rename = "passportNumber")]
+    pub passport_number: Option<String>,
+    #[serde(rename = "licenseNumber")]
+    pub license_number: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct BwField {
+    pub name: Option<String>,
+    pub value: Option<String>,
+    #[serde(rename = "type")]
+    pub field_type: i32,
+}
+
+impl BwField {
+    pub fn type_name(&self) -> &'static str {
+        match self.field_type {
+            0 => "text",
+            1 => "hidden",
+            2 => "boolean",
+            3 => "linked",
+            _ => "unknown",
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]

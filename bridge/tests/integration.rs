@@ -106,7 +106,8 @@ async fn test_secret_retrieval_with_glob_policy() {
     assert_eq!(resp.status(), StatusCode::OK);
     let body: Value = resp.json().await.unwrap();
     assert_eq!(body["key"], "prod/db/password");
-    assert_eq!(body["value"], "super-secret-db-password");
+    assert_eq!(body["type"], "login");
+    assert_eq!(body["login"]["password"], "super-secret-db-password");
 }
 
 #[tokio::test]
@@ -127,7 +128,8 @@ async fn test_secret_retrieval_with_item_policy() {
     assert_eq!(resp.status(), StatusCode::OK);
     let body: Value = resp.json().await.unwrap();
     assert_eq!(body["key"], "staging/db/password");
-    assert_eq!(body["value"], "staging-db-password");
+    assert_eq!(body["type"], "login");
+    assert_eq!(body["login"]["password"], "staging-db-password");
 }
 
 #[tokio::test]

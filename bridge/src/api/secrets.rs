@@ -112,15 +112,6 @@ pub async fn get_secret(
         return Err(AppError::AccessDenied);
     }
 
-    // Extract the secret value
-    let value = item
-        .login
-        .as_ref()
-        .and_then(|l| l.password.clone())
-        .unwrap_or_default();
-
-    let updated_at = item.revision_date.clone().unwrap_or_default();
-
     // Audit success
     crate::audit::log(
         &state.pool,
@@ -133,9 +124,95 @@ pub async fn get_secret(
     )
     .await;
 
-    Ok(Json(json!({
+    // Build type-specific response
+    let updated_at = item.revision_date.clone().unwrap_or_default();
+    let type_name = item.type_name();
+
+    let mut resp = json!({
         "key": key,
-        "value": value,
+        "type": type_name,
+        "notes": item.notes,
         "updated_at": updated_at,
-    })))
+    });
+
+    // Custom fields
+    if let Some(fields) = &item.fields {
+        let fields_json: Vec<Value> = fields
+            .iter()
+            .map(|f| {
+                json!({
+                    "name": f.name,
+                    "value": f.value,
+                    "type": f.type_name(),
+                })
+            })
+            .collect();
+        resp["fields"] = json!(fields_json);
+    }
+
+    // Type-specific block
+    match item.item_type {
+        1 => {
+            if let Some(login) = &item.login {
+                let uris: Vec<&str> = login
+                    .uris
+                    .as_ref()
+                    .map(|u| {
+                        u.iter()
+                            .filter_map(|uri| uri.uri.as_deref())
+                            .collect()
+                    })
+                    .unwrap_or_default();
+
+                resp["login"] = json!({
+                    "username": login.username,
+                    "password": login.password,
+                    "totp": login.totp,
+                    "uris": uris,
+                });
+            }
+        }
+        3 => {
+            if let Some(card) = &item.card {
+                resp["card"] = json!({
+                    "cardholder_name": card.cardholder_name,
+                    "brand": card.brand,
+                    "number": card.number,
+                    "exp_month": card.exp_month,
+                    "exp_year": card.exp_year,
+                    "cvv": card.code,
+                });
+            }
+        }
+        4 => {
+            if let Some(identity) = &item.identity {
+                resp["identity"] = json!({
+                    "title": identity.title,
+                    "first_name": identity.first_name,
+                    "middle_name": identity.middle_name,
+                    "last_name": identity.last_name,
+                    "address1": identity.address1,
+                    "address2": identity.address2,
+                    "address3": identity.address3,
+                    "city": identity.city,
+                    "state": identity.state,
+                    "postal_code": identity.postal_code,
+                    "country": identity.country,
+                    "company": identity.company,
+                    "email": identity.email,
+                    "phone": identity.phone,
+                    "ssn": identity.ssn,
+                    "username": identity.username,
+                    "passport_number": identity.passport_number,
+                    "license_number": identity.license_number,
+                });
+            }
+        }
+        2 => {
+            // Secure note — content is in the common `notes` field, no type-specific block
+        }
+        _ => {}
+    }
+
+    Ok(Json(resp))
 }
