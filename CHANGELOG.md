@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.3.0 - 2026-03-22
+#### Features
+- collection/folder browsing and secret disambiguation - (1a8be51) - Barry Walker, *Claude Opus 4.6 (1M context)*
+
+- - -
+
 ## v0.2.0 - 2026-03-21
 #### Features
 - multi-type secret support - (9f2bad0) - Barry Walker, *Claude Opus 4.6 (1M context)*
