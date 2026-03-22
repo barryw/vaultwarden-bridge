@@ -1,3 +1,4 @@
+pub mod browse;
 pub mod health;
 pub mod secrets;
 
@@ -21,6 +22,10 @@ pub fn router(state: AppState) -> Router {
 
     Router::new()
         .route("/v1/secret/{*key}", get(secrets::get_secret))
+        .route("/v1/organizations", get(browse::list_organizations))
+        .route("/v1/collections", get(browse::list_collections))
+        .route("/v1/folders", get(browse::list_folders))
+        .route("/v1/items", get(browse::list_items))
         .layer(GovernorLayer {
             config: governor_config,
         })

@@ -15,6 +15,9 @@ pub enum AppError {
     #[error("access denied")]
     AccessDenied,
 
+    #[error("ambiguous")]
+    Ambiguous(serde_json::Value),
+
     #[error("ip denied")]
     IpDenied,
 
@@ -39,9 +42,14 @@ impl IntoResponse for AppError {
                 StatusCode::FORBIDDEN
             }
             AppError::NotFound(_) => StatusCode::NOT_FOUND,
+            AppError::Ambiguous(_) => StatusCode::CONFLICT,
             AppError::ServiceUnavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
+
+        if let AppError::Ambiguous(body) = self {
+            return (status, axum::Json(body)).into_response();
+        }
 
         let body = serde_json::json!({ "error": self.to_string() });
         (status, axum::Json(body)).into_response()

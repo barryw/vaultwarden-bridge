@@ -20,10 +20,70 @@ pub struct BwItem {
     pub identity: Option<BwIdentity>,
     pub fields: Option<Vec<BwField>>,
     pub notes: Option<String>,
+    #[serde(rename = "organizationId")]
+    pub organization_id: Option<String>,
+    #[serde(rename = "folderId")]
+    pub folder_id: Option<String>,
     #[serde(rename = "collectionIds")]
     pub collection_ids: Option<Vec<String>>,
     #[serde(rename = "revisionDate")]
     pub revision_date: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BwOrganization {
+    pub id: String,
+    pub name: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BwCollection {
+    pub id: String,
+    pub name: String,
+    #[serde(rename = "organizationId")]
+    pub organization_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BwFolder {
+    pub id: String,
+    pub name: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct BwOrgListResponse {
+    #[allow(dead_code)]
+    success: bool,
+    data: Option<BwOrgListData>,
+}
+
+#[derive(Debug, Deserialize)]
+struct BwOrgListData {
+    data: Vec<BwOrganization>,
+}
+
+#[derive(Debug, Deserialize)]
+struct BwCollectionListResponse {
+    #[allow(dead_code)]
+    success: bool,
+    data: Option<BwCollectionListData>,
+}
+
+#[derive(Debug, Deserialize)]
+struct BwCollectionListData {
+    data: Vec<BwCollection>,
+}
+
+#[derive(Debug, Deserialize)]
+struct BwFolderListResponse {
+    #[allow(dead_code)]
+    success: bool,
+    data: Option<BwFolderListData>,
+}
+
+#[derive(Debug, Deserialize)]
+struct BwFolderListData {
+    data: Vec<BwFolder>,
 }
 
 /// Maps item_type integers to API type strings.
@@ -165,6 +225,24 @@ impl BwClient {
         }
         let body: BwItemResponse = resp.json().await?;
         Ok(body.data)
+    }
+
+    pub async fn list_organizations(&self) -> anyhow::Result<Vec<BwOrganization>> {
+        let url = format!("{}/list/object/organizations", self.base_url);
+        let resp: BwOrgListResponse = self.http.get(&url).send().await?.json().await?;
+        Ok(resp.data.map(|d| d.data).unwrap_or_default())
+    }
+
+    pub async fn list_collections(&self) -> anyhow::Result<Vec<BwCollection>> {
+        let url = format!("{}/list/object/collections", self.base_url);
+        let resp: BwCollectionListResponse = self.http.get(&url).send().await?.json().await?;
+        Ok(resp.data.map(|d| d.data).unwrap_or_default())
+    }
+
+    pub async fn list_folders(&self) -> anyhow::Result<Vec<BwFolder>> {
+        let url = format!("{}/list/object/folders", self.base_url);
+        let resp: BwFolderListResponse = self.http.get(&url).send().await?.json().await?;
+        Ok(resp.data.map(|d| d.data).unwrap_or_default())
     }
 
     pub async fn sync(&self) -> anyhow::Result<()> {
